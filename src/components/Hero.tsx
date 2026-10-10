@@ -37,14 +37,26 @@ export const Hero: React.FC<HeroProps> = ({
 
           {/* Hero Content */}
           <div className="relative z-20 max-w-2xl px-6 sm:px-12 py-12">
-            {/* Editorial Kicker */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-[#00F58A]/30 backdrop-blur-md mb-5">
-              <span className="w-2 h-2 rounded-full bg-[#00F58A]" />
-              <span className="text-xs font-bold text-white tracking-wide">
-                {lang === 'ml'
-                  ? `കേരള ഔദ്യോഗിക കൊമേഴ്സ് നെറ്റ്വർക്ക് · ഡെലിവറി: ${selectedDistrict}`
-                  : `Official Kerala Digital Marketplace · Authorized Delivery to ${selectedDistrict}`}
-              </span>
+            {/* Official Brand Identity on Front Page */}
+            <div className="flex items-center gap-3.5 mb-5">
+              <img
+                src="/logo.jpg"
+                alt="NEXDROP Kerala Official Logo"
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover bg-black border border-[#00F58A]/50 p-1 shadow-[0_0_30px_rgba(0,245,138,0.35)] shrink-0"
+              />
+              <div className="inline-flex flex-col justify-center">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-[#00F58A]/30 backdrop-blur-md">
+                  <span className="w-2 h-2 rounded-full bg-[#00F58A] animate-pulse" />
+                  <span className="text-[11px] font-bold text-white tracking-wide">
+                    {lang === 'ml'
+                      ? `ഡെലിവറി: ${selectedDistrict}`
+                      : `Official Kerala Commerce · Delivery to ${selectedDistrict}`}
+                  </span>
+                </div>
+                <span className="text-[11px] text-[#00F58A] font-semibold mt-1 tracking-wider uppercase font-mono">
+                  NEXDROP — Kerala E-Commerce Marketplace
+                </span>
+              </div>
             </div>
 
             {/* Display Headline */}

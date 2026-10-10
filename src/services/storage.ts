@@ -384,10 +384,26 @@ export class NexdropStore {
   }
 
   // Current User State
+  static isCustomerLoggedIn(): boolean {
+    return getStored<boolean>('customer_logged_in', false);
+  }
+
+  static setCustomerLoggedIn(status: boolean): void {
+    setStored('customer_logged_in', status);
+  }
+
+  static logoutCustomer(): void {
+    setStored('customer_logged_in', false);
+  }
+
   static getUser(): User {
     const u = getStored<User>('user', INITIAL_USER);
     if (u) {
       let modified = false;
+      if (u.name === 'Fayiz Mohammed' || !u.name) {
+        u.name = 'Kerala Shopper';
+        modified = true;
+      }
       if (u.phone === '+91 98470 55432' || !u.phone) {
         u.phone = '+91 9037538732';
         modified = true;
@@ -398,6 +414,10 @@ export class NexdropStore {
       }
       if (u.addresses) {
         u.addresses.forEach((addr) => {
+          if (addr.name === 'Fayiz Mohammed') {
+            addr.name = 'Kerala Shopper';
+            modified = true;
+          }
           if (addr.phone === '+91 98470 55432' || !addr.phone) {
             addr.phone = '+91 9037538732';
             modified = true;
@@ -518,10 +538,45 @@ export class NexdropStore {
     const customers = this.getCustomers();
     const found = customers.find((c) => c.email.toLowerCase() === email.trim().toLowerCase());
     if (found) {
+      this.setCustomerLoggedIn(true);
       this.saveUser(found);
       return found;
     }
     return null;
+  }
+
+  static loginCustomerByPhone(phone: string, optionalName?: string): User {
+    const rawClean = phone.replace(/\D/g, '');
+    const cleanPhone = rawClean.length > 10 ? rawClean.slice(-10) : rawClean;
+    const formatted = `+91 ${cleanPhone}`;
+
+    const customers = this.getCustomers();
+    let found = customers.find((c) => {
+      const cClean = (c.phone || '').replace(/\D/g, '');
+      const addrCleanMatch = c.addresses?.some((a) => (a.phone || '').replace(/\D/g, '').endsWith(cleanPhone));
+      return cClean.endsWith(cleanPhone) || addrCleanMatch;
+    });
+
+    if (found) {
+      if (optionalName && optionalName.trim() && found.name === 'Kerala Shopper') {
+        found.name = optionalName.trim();
+        this.saveCustomers(customers.map((c) => (c.id === found!.id ? found! : c)));
+      }
+      this.setCustomerLoggedIn(true);
+      this.saveUser(found);
+      return found;
+    }
+
+    // Auto-register customer with verified mobile number
+    const newUser = this.registerCustomer({
+      name: optionalName?.trim() || `Customer +91 ${cleanPhone}`,
+      email: `customer_${cleanPhone}@nexdropkerala.in`,
+      phone: formatted,
+      district: 'Ernakulam',
+      pin_code: '682001',
+    });
+    this.setCustomerLoggedIn(true);
+    return newUser;
   }
 
   static toggleBlockCustomer(userId: string): void {

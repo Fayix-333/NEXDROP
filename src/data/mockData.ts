@@ -585,7 +585,7 @@ export const INITIAL_ORDERS: Order[] = [
     id: 'ord_108291',
     order_number: 'NXD-KL-8921',
     customer_id: 'user_cust_default',
-    customer_name: 'Fayiz Mohammed',
+    customer_name: 'Customer Account',
     customer_phone: '+91 9037538732',
     customer_email: 'nexdropkerala@gmail.com',
     items: [
@@ -614,7 +614,7 @@ export const INITIAL_ORDERS: Order[] = [
     awb_number: 'KL-EXP-9041284',
     shipping_address: {
       id: 'addr_1',
-      name: 'Fayiz Mohammed',
+      name: 'Customer Account',
       phone: '+91 9037538732',
       street: 'Flat 4B, Skyview Palms, Marine Drive',
       landmark: 'Near High Court Junction',
@@ -702,7 +702,7 @@ export const INITIAL_REVIEWS: Review[] = [
 
 export const INITIAL_USER: User = {
   id: 'user_cust_default',
-  name: 'Fayiz Mohammed',
+  name: 'Customer Account',
   email: 'nexdropkerala@gmail.com',
   phone: '+91 9037538732',
   role: 'customer',
@@ -712,7 +712,7 @@ export const INITIAL_USER: User = {
   addresses: [
     {
       id: 'addr_1',
-      name: 'Fayiz Mohammed',
+      name: 'Customer Account',
       phone: '+91 9037538732',
       street: 'Flat 4B, Skyview Palms, Marine Drive',
       landmark: 'Near High Court Junction',
@@ -723,7 +723,7 @@ export const INITIAL_USER: User = {
     },
     {
       id: 'addr_2',
-      name: 'Fayiz Mohammed (Office)',
+      name: 'Customer Account (Office)',
       phone: '+91 9037538732',
       street: 'Level 3, Infopark Phase 2, Kakkanad',
       landmark: 'Near SmartCity Kochi',
@@ -789,7 +789,7 @@ export const INITIAL_REFUNDS = [
     order_id: 'ord_108291',
     order_number: 'NXD-KL-8921',
     customer_id: 'user_cust_default',
-    customer_name: 'Fayiz Mohammed',
+    customer_name: 'Customer Account',
     seller_id: 'seller_cochin_tech',
     amount: 3499,
     reason: 'Size/Fitting issue with linen apparel',

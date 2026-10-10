@@ -1,5 +1,5 @@
-import React from 'react';
-import { MapPin, Phone, Mail, ShieldCheck, Heart } from 'lucide-react';
+import React, { useState } from 'react';
+import { MapPin, Phone, Mail, ShieldCheck, Heart, Lock, X, KeyRound, ShieldAlert } from 'lucide-react';
 import { TRANSLATIONS } from '../data/translations';
 import { AppView } from '../types';
 
@@ -17,6 +17,23 @@ export const Footer: React.FC<FooterProps> = ({
   onNavigateView,
 }) => {
   const t = TRANSLATIONS[lang];
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminError, setAdminError] = useState<string | null>(null);
+
+  const handleAdminAuthSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (adminPassword.trim() === 'NEXDROP333') {
+      setShowAdminModal(false);
+      setAdminPassword('');
+      setAdminError(null);
+      if (onNavigateView) {
+        onNavigateView('admin');
+      }
+    } else {
+      setAdminError('Access Denied: Invalid security passkey. Unauthorized attempt.');
+    }
+  };
 
   return (
     <footer className="mt-16 border-t border-white/10 bg-[#070A08] text-white">
@@ -83,10 +100,12 @@ export const Footer: React.FC<FooterProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           <div className="md:col-span-2 space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-[#00F58A]/20 border border-[#00F58A]/40 flex items-center justify-center">
-                <span className="text-sm font-extrabold text-[#00F58A]">NX</span>
-              </div>
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/logo.jpg"
+                alt="NEXDROP Logo"
+                className="w-9 h-9 rounded-xl object-contain bg-black border border-[#00F58A]/40 p-0.5 shadow-[0_0_15px_rgba(0,245,138,0.2)]"
+              />
               <span className="font-display font-extrabold text-xl tracking-tight text-white">
                 NEXDROP
               </span>
@@ -200,15 +219,6 @@ export const Footer: React.FC<FooterProps> = ({
                 </button>
               </li>
               <li>
-                <button
-                  onClick={() => onNavigateView ? onNavigateView('admin') : null}
-                  className="text-slate-400 hover:text-[#00F58A] transition-colors text-left flex items-center gap-1.5"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#00F58A]" />
-                  <span>Central Operations Admin</span>
-                </button>
-              </li>
-              <li>
                 <a href="#seller-guidelines" className="hover:text-[#00F58A] transition-colors">
                   Merchant Commission Guide (8-15%)
                 </a>
@@ -218,7 +228,17 @@ export const Footer: React.FC<FooterProps> = ({
         </div>
 
         <div className="mt-12 pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between text-[11px] text-[#A6B2AA] gap-3">
-          <p>© 2026 NEXDROP Technologies Kerala Pvt. Ltd. All rights reserved.</p>
+          <p
+            onDoubleClick={() => {
+              setShowAdminModal(true);
+              setAdminPassword('');
+              setAdminError(null);
+            }}
+            className="cursor-pointer select-none hover:text-white transition-colors"
+            title="NEXDROP Kerala"
+          >
+            © 2026 NEXDROP Technologies Kerala Pvt. Ltd. All rights reserved.
+          </p>
           <p className="flex items-center gap-3">
             <span>GSTIN: 32AABCN9988Z1Z5</span>
             <span>·</span>
@@ -228,6 +248,86 @@ export const Footer: React.FC<FooterProps> = ({
           </p>
         </div>
       </div>
+
+      {/* Admin Access Modal - Triggered exclusively via secret double-click on footer copyright */}
+      {showAdminModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-sm glass-panel-glow rounded-3xl p-6 border border-emerald-500/30 shadow-2xl bg-[#070A08] space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#00F58A]/15 border border-[#00F58A]/30 flex items-center justify-center text-[#00F58A]">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-display text-sm font-bold text-white">Central Operations Gate</h3>
+                  <p className="text-[10px] text-[#A6B2AA]">NEXDROP Kerala Administration</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAdminModal(false);
+                  setAdminPassword('');
+                  setAdminError(null);
+                }}
+                className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAdminAuthSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs text-[#A6B2AA] font-medium block mb-1.5">
+                  Enter Admin Security Passkey
+                </label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3.5 top-3 w-4 h-4 text-white/40" />
+                  <input
+                    type="password"
+                    autoFocus
+                    required
+                    value={adminPassword}
+                    onChange={(e) => {
+                      setAdminPassword(e.target.value);
+                      setAdminError(null);
+                    }}
+                    placeholder="Enter passkey to unlock..."
+                    className="w-full pl-10 pr-3 py-2.5 rounded-xl text-xs glass-input tracking-wider"
+                  />
+                </div>
+              </div>
+
+              {adminError && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 shrink-0 text-rose-400" />
+                  <span>{adminError}</span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAdminModal(false);
+                    setAdminPassword('');
+                    setAdminError(null);
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 text-xs font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-[#00F58A] hover:bg-[#00C875] text-black text-xs font-extrabold shadow-lg shadow-[#00F58A]/20 transition-all hover:scale-[1.02]"
+                >
+                  Unlock Admin
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </footer>
   );
 };

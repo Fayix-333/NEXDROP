@@ -36,6 +36,7 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>(() => NexdropStore.getProducts());
   const [categories] = useState(() => NexdropStore.getCategories());
   const [user, setUser] = useState<User>(() => NexdropStore.getUser());
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => NexdropStore.isCustomerLoggedIn());
   const [cart, setCart] = useState<CartItem[]>(() => NexdropStore.getCart());
 
   // Filter & Search state
@@ -82,7 +83,10 @@ export default function App() {
   };
 
   const handleCustomerAuthSuccess = (authenticatedUser: User) => {
+    NexdropStore.setCustomerLoggedIn(true);
+    setIsLoggedIn(true);
     setUser(authenticatedUser);
+    setIsCustomerAuthOpen(false);
     setCurrentView('customer');
   };
 
@@ -91,6 +95,8 @@ export default function App() {
   };
 
   const handleCustomerLogout = () => {
+    NexdropStore.logoutCustomer();
+    setIsLoggedIn(false);
     const defaultUser = NexdropStore.getCustomers()[0];
     setUser(defaultUser);
     setCurrentView('store');
@@ -174,6 +180,8 @@ export default function App() {
       {/* Top Navbar */}
       <Navbar
         user={user}
+        isLoggedIn={isLoggedIn}
+        onLogout={handleCustomerLogout}
         cartCount={cartTotalItems}
         wishlistCount={user.wishlist.length}
         selectedDistrict={selectedDistrict}
@@ -181,14 +189,20 @@ export default function App() {
         lang={lang}
         onToggleLang={() => setLang(lang === 'en' ? 'ml' : 'en')}
         onOpenCart={() => setIsCartOpen(true)}
-        onOpenWishlist={() => setCurrentView('customer')}
+        onOpenWishlist={() => {
+          if (!isLoggedIn) {
+            setIsCustomerAuthOpen(true);
+          } else {
+            setCurrentView('customer');
+          }
+        }}
         currentView={currentView}
         onChangeView={(view) => setCurrentView(view)}
         searchQuery={searchQuery}
         onSearchChange={(q) => setSearchQuery(q)}
         products={products}
         onSelectProduct={(p) => setActiveProductModal(p)}
-        onOpenCustomerAuth={() => setCurrentView('customer-login')}
+        onOpenCustomerAuth={() => setIsCustomerAuthOpen(true)}
         onOpenSellerAuth={() => setCurrentView('seller-login')}
       />
 

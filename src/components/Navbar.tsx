@@ -11,6 +11,7 @@ import {
   ChevronDown,
   X,
   LogIn,
+  LogOut,
   Menu,
   Package,
   Truck,
@@ -49,6 +50,8 @@ const KERALA_DISTRICT_CAPITALS: Record<string, string> = {
 
 interface NavbarProps {
   user: User;
+  isLoggedIn?: boolean;
+  onLogout?: () => void;
   cartCount: number;
   wishlistCount: number;
   selectedDistrict: string;
@@ -69,6 +72,8 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({
   user,
+  isLoggedIn = false,
+  onLogout,
   cartCount,
   wishlistCount,
   selectedDistrict,
@@ -224,28 +229,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onChangeView('store');
                     setShowMobileMenu(false);
                   }}
-                  className="flex items-center gap-2 sm:gap-2.5 group text-left focus-visible:outline-none"
+                  className="flex items-center gap-1.5 sm:gap-2.5 group text-left focus-visible:outline-none"
                 >
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-[#00F58A]/20 via-[#00F58A]/10 to-transparent border border-[#00F58A]/40 flex items-center justify-center shadow-[0_0_20px_rgba(0,245,138,0.2)] group-hover:border-[#00F58A] transition-all duration-300 shrink-0">
-                    <svg
-                      className="w-4 h-4 sm:w-5 sm:h-5 text-[#00F58A]"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M12 2L4 9v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-8-7z" />
-                      <path d="M12 11a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" fill="#00F58A" fillOpacity="0.4" />
-                    </svg>
-                  </div>
+                  <img
+                    src="/logo.jpg"
+                    alt="NEXDROP Official Logo"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl object-contain bg-black border border-[#00F58A]/40 p-0.5 shadow-[0_0_20px_rgba(0,245,138,0.25)] group-hover:border-[#00F58A] transition-all shrink-0"
+                  />
                   <div>
                     <div className="flex items-center gap-1 sm:gap-1.5">
-                      <span className="font-display font-black text-base sm:text-xl tracking-tight text-white group-hover:text-[#00F58A] transition-colors">
+                      <span className="font-display font-black text-sm sm:text-xl tracking-tight text-white group-hover:text-[#00F58A] transition-colors">
                         NEXDROP
                       </span>
-                      <span className="text-[8px] sm:text-[9px] uppercase font-bold tracking-widest text-black bg-[#00F58A] px-1 sm:px-1.5 py-0.5 rounded font-mono">
+                      <span className="text-[7.5px] sm:text-[9px] uppercase font-bold tracking-widest text-black bg-[#00F58A] px-1 sm:px-1.5 py-0.5 rounded font-mono">
                         OFFICIAL
                       </span>
                     </div>
@@ -382,145 +378,121 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </span>
                 </button>
 
-                {/* Desktop Account Menu Dropdown */}
-                <div className="relative hidden md:block">
+                {/* Desktop Account Menu / Login Button */}
+                {!isLoggedIn ? (
                   <button
-                    onClick={() => setShowAccountMenu(!showAccountMenu)}
-                    className="flex items-center gap-1.5 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-colors"
-                    aria-label="Account Menu"
+                    onClick={onOpenCustomerAuth}
+                    className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-[#00F58A] hover:brightness-110 text-black font-extrabold text-xs shadow-md shadow-[#00F58A]/20 transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0"
+                    aria-label="Customer Login"
                   >
-                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-500 to-[#00F58A] text-black font-extrabold text-[11px] flex items-center justify-center">
-                      {user.name[0]}
-                    </div>
-                    <span className="hidden lg:inline text-xs font-medium text-white/90">
-                      {user.name.split(' ')[0]}
-                    </span>
-                    <ChevronDown className="w-3 h-3 text-white/60" />
+                    <LogIn className="w-3.5 sm:w-4 h-3.5 sm:h-4 stroke-[2.5]" />
+                    <span>Login</span>
                   </button>
-
-                  {/* Portal Switch Dropdown */}
-                  {showAccountMenu && (
-                    <div
-                      className="absolute right-0 top-full mt-2 w-64 rounded-2xl glass-panel-glow border border-white/15 p-2 shadow-2xl z-50 backdrop-blur-2xl"
-                      onClick={() => setShowAccountMenu(false)}
+                ) : (
+                  <div className="relative hidden md:block">
+                    <button
+                      onClick={() => setShowAccountMenu(!showAccountMenu)}
+                      className="flex items-center gap-1.5 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-colors"
+                      aria-label="Account Menu"
                     >
-                      <div className="px-3 py-2 border-b border-white/10 mb-1">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs font-bold text-white">{user.name}</p>
-                          <span className="text-[10px] font-mono text-[#00F58A] bg-[#00F58A]/10 px-1.5 py-0.5 rounded">
-                            {userPin}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-[#A6B2AA] truncate">{user.email}</p>
+                      <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-500 to-[#00F58A] text-black font-extrabold text-[11px] flex items-center justify-center">
+                        {user.name ? user.name[0] : 'U'}
                       </div>
+                      <span className="hidden lg:inline text-xs font-medium text-white/90">
+                        {user.name.split(' ')[0]}
+                      </span>
+                      <ChevronDown className="w-3 h-3 text-white/60" />
+                    </button>
 
-                      <button
-                        onClick={() => onChangeView('store')}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl transition-colors ${
-                          currentView === 'store'
-                            ? 'bg-[#00F58A]/20 text-[#00F58A] font-semibold'
-                            : 'text-white/80 hover:bg-white/10'
-                        }`}
+                    {/* Portal Switch Dropdown */}
+                    {showAccountMenu && (
+                      <div
+                        className="absolute right-0 top-full mt-2 w-64 rounded-2xl glass-panel-glow border border-white/15 p-2 shadow-2xl z-50 backdrop-blur-2xl"
+                        onClick={() => setShowAccountMenu(false)}
                       >
-                        <ShoppingBag className="w-3.5 h-3.5" />
-                        <span>Storefront (Shopping)</span>
-                      </button>
+                        <div className="px-3 py-2 border-b border-white/10 mb-1">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-bold text-white">{user.name}</p>
+                            <span className="text-[10px] font-mono text-[#00F58A] bg-[#00F58A]/10 px-1.5 py-0.5 rounded">
+                              {userPin}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-[#A6B2AA] truncate">{user.phone || user.email}</p>
+                        </div>
 
-                      <button
-                        onClick={() => {
-                          onChangeView('customer');
-                          setShowAccountMenu(false);
-                        }}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl transition-colors ${
-                          currentView === 'customer'
-                            ? 'bg-[#00F58A]/20 text-[#00F58A] font-semibold'
-                            : 'text-white/80 hover:bg-white/10'
-                        }`}
-                      >
-                        <UserIcon className="w-3.5 h-3.5" />
-                        <span>Customer Dashboard</span>
-                      </button>
+                        <button
+                          onClick={() => onChangeView('store')}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl transition-colors ${
+                            currentView === 'store'
+                              ? 'bg-[#00F58A]/20 text-[#00F58A] font-semibold'
+                              : 'text-white/80 hover:bg-white/10'
+                          }`}
+                        >
+                          <ShoppingBag className="w-3.5 h-3.5" />
+                          <span>Storefront (Shopping)</span>
+                        </button>
 
-                      <button
-                        onClick={() => {
-                          onChangeView('customer-login');
-                          setShowAccountMenu(false);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl text-white/80 hover:bg-white/10 transition-colors"
-                      >
-                        <LogIn className="w-3.5 h-3.5 text-[#00F58A]" />
-                        <span>Customer Sign In</span>
-                      </button>
+                        <button
+                          onClick={() => {
+                            onChangeView('customer');
+                            setShowAccountMenu(false);
+                          }}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl transition-colors ${
+                            currentView === 'customer'
+                              ? 'bg-[#00F58A]/20 text-[#00F58A] font-semibold'
+                              : 'text-white/80 hover:bg-white/10'
+                          }`}
+                        >
+                          <UserIcon className="w-3.5 h-3.5" />
+                          <span>Customer Dashboard</span>
+                        </button>
 
-                      <button
-                        onClick={() => {
-                          onChangeView('customer-register');
-                          setShowAccountMenu(false);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl text-white/80 hover:bg-white/10 transition-colors"
-                      >
-                        <UserIcon className="w-3.5 h-3.5 text-[#00F58A]" />
-                        <span>Customer Sign Up</span>
-                      </button>
+                        <div className="my-1 border-t border-white/10" />
 
-                      <div className="my-1 border-t border-white/10" />
+                        <button
+                          onClick={() => {
+                            onChangeView('seller');
+                            setShowAccountMenu(false);
+                          }}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl transition-colors ${
+                            currentView === 'seller'
+                              ? 'bg-[#00F58A]/20 text-[#00F58A] font-semibold'
+                              : 'text-white/80 hover:bg-white/10'
+                          }`}
+                        >
+                          <Store className="w-3.5 h-3.5" />
+                          <span>Seller Dashboard</span>
+                        </button>
 
-                      <button
-                        onClick={() => {
-                          onChangeView('seller');
-                          setShowAccountMenu(false);
-                        }}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl transition-colors ${
-                          currentView === 'seller'
-                            ? 'bg-[#00F58A]/20 text-[#00F58A] font-semibold'
-                            : 'text-white/80 hover:bg-white/10'
-                        }`}
-                      >
-                        <Store className="w-3.5 h-3.5" />
-                        <span>Seller Dashboard</span>
-                      </button>
+                        <button
+                          onClick={() => {
+                            onChangeView('seller-login');
+                            setShowAccountMenu(false);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl text-white/80 hover:bg-white/10 transition-colors"
+                        >
+                          <Store className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Seller Login</span>
+                        </button>
 
-                      <button
-                        onClick={() => {
-                          onChangeView('seller-login');
-                          setShowAccountMenu(false);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl text-white/80 hover:bg-white/10 transition-colors"
-                      >
-                        <Store className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Seller Login</span>
-                      </button>
+                        <div className="my-1 border-t border-white/10" />
 
-                      <button
-                        onClick={() => {
-                          onChangeView('seller-register');
-                          setShowAccountMenu(false);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl text-white/80 hover:bg-white/10 transition-colors"
-                      >
-                        <Store className="w-3.5 h-3.5 text-[#00F58A]" />
-                        <span>Onboard Kerala Merchant</span>
-                      </button>
-
-                      <div className="my-1 border-t border-white/10" />
-
-                      <button
-                        onClick={() => {
-                          onChangeView('admin');
-                          setShowAccountMenu(false);
-                        }}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl transition-colors ${
-                          currentView === 'admin'
-                            ? 'bg-[#00F58A]/20 text-[#00F58A] font-bold border border-[#00F58A]/30'
-                            : 'text-slate-300 hover:bg-white/10'
-                        }`}
-                      >
-                        <ShieldCheck className="w-3.5 h-3.5 text-[#00F58A]" />
-                        <span className="font-semibold text-[#00F58A]">Central Admin Operations</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
+                        {onLogout && (
+                          <button
+                            onClick={() => {
+                              onLogout();
+                              setShowAccountMenu(false);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl text-rose-300 hover:bg-rose-500/10 transition-colors"
+                          >
+                            <LogOut className="w-3.5 h-3.5 text-rose-400" />
+                            <span>Sign Out</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -661,38 +633,57 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Scrollable Drawer Body */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               
-              {/* User Profile Card */}
-              <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-[#00F58A] text-black font-black text-sm flex items-center justify-center shrink-0">
-                    {user.name[0]}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-white truncate">{user.name}</p>
-                    <p className="text-[11px] text-[#A6B2AA] truncate">{user.email}</p>
-                  </div>
-                </div>
-
-                {/* Delivery Location badge in profile */}
-                <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs text-[#A6B2AA] truncate mr-2">
-                    <MapPin className="w-3.5 h-3.5 text-[#00F58A] shrink-0" />
-                    <span className="truncate">
-                      📍 <strong className="text-white">{identifiedPlace ? identifiedPlace.placeName.split('/')[0].trim() : selectedDistrict}</strong> · <span className="font-mono text-[#00F58A]">{userPin}</span>
-                    </span>
+              {/* User Profile / Login Card */}
+              {!isLoggedIn ? (
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-[#00F58A]/15 via-white/[0.03] to-transparent border border-[#00F58A]/30 space-y-3">
+                  <div>
+                    <p className="text-sm font-bold text-white">Kerala Customer Portal</p>
+                    <p className="text-xs text-[#A6B2AA]">Sign in with your mobile number & OTP</p>
                   </div>
                   <button
                     onClick={() => {
-                      setModalPin(userPin);
+                      onOpenCustomerAuth();
                       setShowMobileMenu(false);
-                      setShowLocationModal(true);
                     }}
-                    className="text-[11px] font-bold text-[#00F58A] hover:underline shrink-0"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#00F58A] hover:bg-[#00F58A]/90 text-black font-extrabold text-xs shadow-md shadow-[#00F58A]/20 transition-all"
                   >
-                    Change PIN
+                    <LogIn className="w-4 h-4" />
+                    <span>Login</span>
                   </button>
                 </div>
-              </div>
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-[#00F58A] text-black font-black text-sm flex items-center justify-center shrink-0">
+                      {user.name ? user.name[0] : 'U'}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-white truncate">{user.name}</p>
+                      <p className="text-[11px] text-[#A6B2AA] truncate">{user.phone || user.email}</p>
+                    </div>
+                  </div>
+
+                  {/* Delivery Location badge in profile */}
+                  <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs text-[#A6B2AA] truncate mr-2">
+                      <MapPin className="w-3.5 h-3.5 text-[#00F58A] shrink-0" />
+                      <span className="truncate">
+                        📍 <strong className="text-white">{identifiedPlace ? identifiedPlace.placeName.split('/')[0].trim() : selectedDistrict}</strong> · <span className="font-mono text-[#00F58A]">{userPin}</span>
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setModalPin(userPin);
+                        setShowMobileMenu(false);
+                        setShowLocationModal(true);
+                      }}
+                      className="text-[11px] font-bold text-[#00F58A] hover:underline shrink-0"
+                    >
+                      Change PIN
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Language Switcher in Drawer */}
               <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5">
@@ -851,20 +842,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <span>Onboard Kerala Merchant</span>
                 </button>
 
-                <button
-                  onClick={() => {
-                    onChangeView('admin');
-                    setShowMobileMenu(false);
-                  }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-colors ${
-                    currentView === 'admin'
-                      ? 'bg-[#00F58A]/20 text-[#00F58A] font-bold border border-[#00F58A]/30'
-                      : 'text-white/80 hover:bg-white/5'
-                  }`}
-                >
-                  <ShieldCheck className="w-4 h-4 text-[#00F58A]" />
-                  <span className="text-[#00F58A] font-semibold">Central Admin Operations</span>
-                </button>
+                {isLoggedIn && onLogout && (
+                  <button
+                    onClick={() => {
+                      onLogout();
+                      setShowMobileMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-rose-300 hover:bg-rose-500/10 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4 text-rose-400" />
+                    <span>Sign Out</span>
+                  </button>
+                )}
               </div>
 
               {/* Official Kerala Commerce Network Note */}

@@ -137,9 +137,11 @@ export const SellerAuthPage: React.FC<SellerAuthPageProps> = ({
           <div className="h-4 w-px bg-white/20 hidden sm:block" />
 
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#00F58A] to-[#00C875] flex items-center justify-center shadow-lg shadow-[#00F58A]/20">
-              <Store className="w-4 h-4 text-black" />
-            </div>
+            <img
+              src="/logo.jpg"
+              alt="NEXDROP Logo"
+              className="w-7 h-7 rounded-lg object-contain bg-black border border-[#00F58A]/40 p-0.5 shadow-lg shadow-[#00F58A]/20"
+            />
             <div>
               <span className="font-display font-black text-sm tracking-wide text-white">NEXDROP</span>
               <span className="text-[10px] text-[#00F58A] block font-mono font-bold">Seller Central • Merchant Hub</span>
