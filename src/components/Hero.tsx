@@ -1,0 +1,125 @@
+import React from 'react';
+import { ArrowRight, ShieldCheck, Zap, Truck, Sparkles } from 'lucide-react';
+import { TRANSLATIONS } from '../data/translations';
+
+interface HeroProps {
+  lang: 'en' | 'ml';
+  onShopNow: () => void;
+  onExploreCategories: () => void;
+  selectedDistrict: string;
+}
+
+export const Hero: React.FC<HeroProps> = ({
+  lang,
+  onShopNow,
+  onExploreCategories,
+  selectedDistrict,
+}) => {
+  const t = TRANSLATIONS[lang];
+
+  return (
+    <section className="relative px-3 sm:px-6 pt-2 pb-8 sm:pb-12">
+      <div className="mx-auto max-w-7xl">
+        <div className="relative rounded-3xl overflow-hidden border border-white/10 glass-panel shadow-2xl min-h-[480px] sm:min-h-[540px] flex items-center">
+          {/* Background Generated Hero Imagery */}
+          <div className="absolute inset-0 z-0">
+            <img
+              src="/src/assets/images/hero_nexdrop_kerala_1791605686596.jpg"
+              alt="NEXDROP Liquid Glass Marketplace showcase"
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover object-center filter brightness-[0.75] contrast-[1.05]"
+            />
+            {/* Liquid Glass Gradients & Vignette Scrim */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#050706] via-[#050706]/85 to-transparent z-10" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050706] via-transparent to-transparent z-10" />
+            <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#00F58A]/15 rounded-full blur-[100px] pointer-events-none z-10" />
+          </div>
+
+          {/* Hero Content */}
+          <div className="relative z-20 max-w-2xl px-6 sm:px-12 py-12">
+            {/* Editorial Kicker */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-[#00F58A]/30 backdrop-blur-md mb-5">
+              <span className="w-2 h-2 rounded-full bg-[#00F58A]" />
+              <span className="text-xs font-semibold text-white tracking-wide">
+                {lang === 'ml'
+                  ? `കേരള എക്സ്പ്രസ്സ് ഡെലിവറി: ${selectedDistrict}`
+                  : `Next-Gen Kerala Marketplace · Delivering to ${selectedDistrict}`}
+              </span>
+            </div>
+
+            {/* Display Headline */}
+            <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.1] mb-4 text-balance">
+              {lang === 'ml' ? (
+                <>
+                  നിങ്ങൾക്ക് പ്രിയപ്പെട്ടതെല്ലാം,{' '}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00F58A] to-[#00C875]">
+                    നിങ്ങളുടെ വാതിൽക്കൽ.
+                  </span>
+                </>
+              ) : (
+                <>
+                  Your Next Favourite Thing{' '}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00F58A] to-[#00C875]">
+                    Is Here.
+                  </span>
+                </>
+              )}
+            </h1>
+
+            {/* Supporting Prose */}
+            <p className="text-sm sm:text-base text-[#A6B2AA] mb-8 max-w-xl leading-relaxed">
+              {lang === 'ml'
+                ? 'വയനാടൻ സുഗന്ധവ്യഞ്ജനങ്ങൾ, ഏറ്റവും പുതിയ ഇലക്ട്രോണിക്സ്, കൈത്തറി വസ്ത്രങ്ങൾ എന്നിവ കേരളത്തിലെവിടെയും അതിവേഗം നിങ്ങളുടെ കൈകളിലെത്തുന്നു.'
+                : 'Discover great products. Shop smarter. Guaranteed delivery across all 14 Kerala districts from verified local and global brands.'}
+            </p>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-wrap items-center gap-3.5 mb-10">
+              <button
+                onClick={onShopNow}
+                className="px-6 py-3.5 rounded-2xl bg-[#00F58A] hover:bg-[#00C875] text-[#050706] font-extrabold text-sm flex items-center gap-2 shadow-[0_0_30px_rgba(0,245,138,0.3)] transition-all hover:scale-[1.02] active:scale-95"
+              >
+                <span>{t.shopNow}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={onExploreCategories}
+                className="px-6 py-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-semibold text-sm backdrop-blur-md transition-all hover:scale-[1.02] active:scale-95"
+              >
+                {t.exploreCategories}
+              </button>
+            </div>
+
+            {/* Trust Markers Bar */}
+            <div className="grid grid-cols-3 gap-4 pt-6 border-t border-white/10 max-w-lg">
+              <div>
+                <p className="font-display font-bold text-lg sm:text-xl text-white tabular-nums">
+                  14
+                </p>
+                <p className="text-[11px] text-[#A6B2AA] uppercase tracking-wider">
+                  Districts Covered
+                </p>
+              </div>
+              <div>
+                <p className="font-display font-bold text-lg sm:text-xl text-[#00F58A] tabular-nums">
+                  24–48h
+                </p>
+                <p className="text-[11px] text-[#A6B2AA] uppercase tracking-wider">
+                  Express Transit
+                </p>
+              </div>
+              <div>
+                <p className="font-display font-bold text-lg sm:text-xl text-white tabular-nums">
+                  100%
+                </p>
+                <p className="text-[11px] text-[#A6B2AA] uppercase tracking-wider">
+                  Verified Sellers
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};

@@ -1,0 +1,6 @@
+{
+  "name": "NEXDROP — Kerala E-Commerce Marketplace",
+  "description": "Full-stack Kerala e-commerce marketplace with iOS 27 Liquid Glass design, multi-vendor seller portal, PIN delivery coverage, and admin dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
