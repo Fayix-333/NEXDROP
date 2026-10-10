@@ -38,12 +38,12 @@ export const Hero: React.FC<HeroProps> = ({
           {/* Hero Content */}
           <div className="relative z-20 max-w-2xl px-6 sm:px-12 py-12">
             {/* Editorial Kicker */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-[#00F58A]/30 backdrop-blur-md mb-5">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-[#00F58A]/30 backdrop-blur-md mb-5">
               <span className="w-2 h-2 rounded-full bg-[#00F58A]" />
-              <span className="text-xs font-semibold text-white tracking-wide">
+              <span className="text-xs font-bold text-white tracking-wide">
                 {lang === 'ml'
-                  ? `കേരള എക്സ്പ്രസ്സ് ഡെലിവറി: ${selectedDistrict}`
-                  : `Next-Gen Kerala Marketplace · Delivering to ${selectedDistrict}`}
+                  ? `കേരള ഔദ്യോഗിക കൊമേഴ്സ് നെറ്റ്വർക്ക് · ഡെലിവറി: ${selectedDistrict}`
+                  : `Official Kerala Digital Marketplace · Authorized Delivery to ${selectedDistrict}`}
               </span>
             </div>
 
@@ -51,16 +51,16 @@ export const Hero: React.FC<HeroProps> = ({
             <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.1] mb-4 text-balance">
               {lang === 'ml' ? (
                 <>
-                  നിങ്ങൾക്ക് പ്രിയപ്പെട്ടതെല്ലാം,{' '}
+                  കേരളത്തിന്റെ ഔദ്യോഗിക{' '}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00F58A] to-[#00C875]">
-                    നിങ്ങളുടെ വാതിൽക്കൽ.
+                    ഷോപ്പിംഗ് പ്ലാറ്റ്ഫോം.
                   </span>
                 </>
               ) : (
                 <>
-                  Your Next Favourite Thing{' '}
+                  The Official Marketplace{' '}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00F58A] to-[#00C875]">
-                    Is Here.
+                    of Kerala.
                   </span>
                 </>
               )}
@@ -69,8 +69,8 @@ export const Hero: React.FC<HeroProps> = ({
             {/* Supporting Prose */}
             <p className="text-sm sm:text-base text-[#A6B2AA] mb-8 max-w-xl leading-relaxed">
               {lang === 'ml'
-                ? 'വയനാടൻ സുഗന്ധവ്യഞ്ജനങ്ങൾ, ഏറ്റവും പുതിയ ഇലക്ട്രോണിക്സ്, കൈത്തറി വസ്ത്രങ്ങൾ എന്നിവ കേരളത്തിലെവിടെയും അതിവേഗം നിങ്ങളുടെ കൈകളിലെത്തുന്നു.'
-                : 'Discover great products. Shop smarter. Guaranteed delivery across all 14 Kerala districts from verified local and global brands.'}
+                ? 'വയനാടൻ മലയോര സുഗന്ധവ്യഞ്ജനങ്ങൾ, ബാലരാമപുരം കൈത്തറികൾ, ഓട്ടുപാത്രങ്ങൾ എന്നിവ പൂർണ്ണ സുരക്ഷിതത്വത്തോടെ കേരളത്തിലെവിടെയും 24-48 മണിക്കൂറിനുള്ളിൽ എത്തിക്കുന്നു.'
+                : 'Directly connecting consumers across all 14 Kerala districts to verified regional producers, handloom cooperatives, and authentic consumer electronics with verified courier tracking.'}
             </p>
 
             {/* CTA Buttons */}
@@ -96,7 +96,7 @@ export const Hero: React.FC<HeroProps> = ({
                 <p className="font-display font-bold text-lg sm:text-xl text-white tabular-nums">
                   14
                 </p>
-                <p className="text-[11px] text-[#A6B2AA] uppercase tracking-wider">
+                <p className="text-[11px] text-[#A6B2AA] uppercase tracking-wider font-semibold">
                   Districts Covered
                 </p>
               </div>
@@ -104,16 +104,16 @@ export const Hero: React.FC<HeroProps> = ({
                 <p className="font-display font-bold text-lg sm:text-xl text-[#00F58A] tabular-nums">
                   24–48h
                 </p>
-                <p className="text-[11px] text-[#A6B2AA] uppercase tracking-wider">
-                  Express Transit
+                <p className="text-[11px] text-[#A6B2AA] uppercase tracking-wider font-semibold">
+                  SpeedPost Transit
                 </p>
               </div>
               <div>
                 <p className="font-display font-bold text-lg sm:text-xl text-white tabular-nums">
                   100%
                 </p>
-                <p className="text-[11px] text-[#A6B2AA] uppercase tracking-wider">
-                  Verified Sellers
+                <p className="text-[11px] text-[#A6B2AA] uppercase tracking-wider font-semibold">
+                  GST Verified
                 </p>
               </div>
             </div>

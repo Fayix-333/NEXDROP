@@ -1,5 +1,15 @@
 export type UserRole = 'customer' | 'seller' | 'admin';
 
+export type AppView =
+  | 'store'
+  | 'customer'
+  | 'seller'
+  | 'admin'
+  | 'customer-login'
+  | 'customer-register'
+  | 'seller-login'
+  | 'seller-register';
+
 export interface Address {
   id: string;
   name: string;
@@ -21,6 +31,8 @@ export interface User {
   addresses: Address[];
   default_district: string;
   wishlist: string[]; // product IDs
+  is_blocked?: boolean;
+  created_at?: string;
 }
 
 export interface ProductVariant {
@@ -57,6 +69,8 @@ export interface Product {
   is_featured?: boolean;
   is_trending?: boolean;
   is_active: boolean;
+  approval_status?: 'approved' | 'pending' | 'rejected';
+  moderation_notes?: string;
   variants?: ProductVariant[];
   created_at: string;
 }
@@ -68,6 +82,7 @@ export interface Category {
   icon: string;
   description: string;
   product_count: number;
+  commission_percent?: number;
 }
 
 export interface CartItem {
@@ -80,6 +95,8 @@ export interface CartItem {
 export type OrderStatus =
   | 'Pending Payment'
   | 'Payment Confirmed'
+  | 'Accepted'
+  | 'Rejected'
   | 'Processing'
   | 'Packed'
   | 'Dispatched'
@@ -89,7 +106,10 @@ export type OrderStatus =
   | 'Cancellation Requested'
   | 'Cancelled'
   | 'Return Requested'
-  | 'Returned';
+  | 'Return Approved'
+  | 'Return Rejected'
+  | 'Returned'
+  | 'Refunded';
 
 export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
 export type PaymentMethod = 'razorpay_upi' | 'razorpay_card' | 'netbanking' | 'cod';
@@ -126,6 +146,7 @@ export interface Order {
   tracking_timeline: TrackingEvent[];
   created_at: string;
   updated_at: string;
+  rejection_reason?: string;
 }
 
 export interface Seller {
@@ -146,6 +167,8 @@ export interface Seller {
   total_orders: number;
   active_products: number;
   created_at: string;
+  shop_address?: string;
+  status?: 'active' | 'pending' | 'suspended';
 }
 
 export interface DeliveryPinCode {
@@ -194,4 +217,40 @@ export interface SupportTicket {
   message: string;
   status: 'Open' | 'In Progress' | 'Resolved';
   created_at: string;
+}
+
+export interface RefundRequest {
+  id: string;
+  order_id: string;
+  order_number: string;
+  customer_id: string;
+  customer_name: string;
+  seller_id: string;
+  amount: number;
+  reason: string;
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Refunded';
+  admin_notes?: string;
+  created_at: string;
+}
+
+export interface SellerPayout {
+  id: string;
+  seller_id: string;
+  seller_name: string;
+  amount: number;
+  commission_deducted: number;
+  status: 'Pending' | 'Processed';
+  utr_number?: string;
+  bank_details: string;
+  created_at: string;
+}
+
+export interface NotificationItem {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type: 'order' | 'refund' | 'payout' | 'system';
+  is_read: boolean;
+  timestamp: string;
 }

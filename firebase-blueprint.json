@@ -1,0 +1,196 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account information including contact phone, Kerala delivery PIN code, address, and preferences.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique user ID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name of the user"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Email address"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Contact phone number with area code"
+        },
+        "pin_code": {
+          "type": "string",
+          "pattern": "^[0-9]{6}$",
+          "description": "6-digit postal PIN code"
+        },
+        "district": {
+          "type": "string",
+          "description": "Kerala District (e.g. Ernakulam, Kozhikode, Thiruvananthapuram)"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["customer", "seller", "admin"],
+          "description": "User access role"
+        },
+        "addresses": {
+          "type": "array",
+          "description": "Saved shipping addresses"
+        },
+        "wishlist": {
+          "type": "array",
+          "description": "Array of bookmarked product IDs"
+        },
+        "created_at": {
+          "type": "string",
+          "description": "Creation timestamp"
+        },
+        "updated_at": {
+          "type": "string",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["id", "name", "email", "role"]
+    },
+    "Order": {
+      "title": "Customer Order",
+      "description": "Customer order with status progression, courier AWB, tracking checkpoints, and financial breakdown.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Order unique ID"
+        },
+        "order_number": {
+          "type": "string",
+          "description": "Display order identifier"
+        },
+        "customer_id": {
+          "type": "string",
+          "description": "User ID of purchaser"
+        },
+        "customer_name": {
+          "type": "string",
+          "description": "Purchaser name"
+        },
+        "customer_phone": {
+          "type": "string",
+          "description": "Purchaser phone number"
+        },
+        "customer_email": {
+          "type": "string",
+          "description": "Purchaser email"
+        },
+        "total_amount": {
+          "type": "number",
+          "description": "Total order amount in INR"
+        },
+        "shipping_status": {
+          "type": "string",
+          "enum": [
+            "Pending Payment",
+            "Payment Confirmed",
+            "Accepted",
+            "Rejected",
+            "Processing",
+            "Packed",
+            "Dispatched",
+            "In Transit",
+            "Out for Delivery",
+            "Delivered",
+            "Cancellation Requested",
+            "Cancelled",
+            "Return Requested",
+            "Return Approved",
+            "Return Rejected",
+            "Returned",
+            "Refunded"
+          ],
+          "description": "Current real-time delivery lifecycle status"
+        },
+        "shipping_carrier": {
+          "type": "string",
+          "description": "Logistics carrier partner"
+        },
+        "awb_number": {
+          "type": "string",
+          "description": "Airway bill tracking consignment number"
+        },
+        "pin_code": {
+          "type": "string",
+          "description": "Delivery destination PIN code"
+        },
+        "created_at": {
+          "type": "string",
+          "description": "Order creation date"
+        },
+        "updated_at": {
+          "type": "string",
+          "description": "Order last status update"
+        }
+      },
+      "required": ["id", "order_number", "customer_id", "total_amount", "shipping_status"]
+    },
+    "Review": {
+      "title": "Product Review & Rating",
+      "description": "Customer feedback including 1-5 star ratings, feedback comments, and verified purchase status.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Review unique ID"
+        },
+        "product_id": {
+          "type": "string",
+          "description": "Product referenced"
+        },
+        "user_id": {
+          "type": "string",
+          "description": "Customer who authored the review"
+        },
+        "user_name": {
+          "type": "string",
+          "description": "Customer display name"
+        },
+        "user_district": {
+          "type": "string",
+          "description": "Kerala district of customer"
+        },
+        "rating": {
+          "type": "number",
+          "description": "Rating score between 1 and 5"
+        },
+        "comment": {
+          "type": "string",
+          "description": "Review text feedback"
+        },
+        "is_verified_purchase": {
+          "type": "boolean",
+          "description": "Whether user purchased the item"
+        },
+        "created_at": {
+          "type": "string",
+          "description": "Date created"
+        }
+      },
+      "required": ["id", "product_id", "user_id", "rating", "comment"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles containing name, email, phone number, Kerala PIN code, and saved preferences."
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Orders created by customers, trackable in real-time."
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Product customer ratings and verified reviews."
+    }
+  }
+}

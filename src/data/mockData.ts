@@ -586,8 +586,8 @@ export const INITIAL_ORDERS: Order[] = [
     order_number: 'NXD-KL-8921',
     customer_id: 'user_cust_default',
     customer_name: 'Fayiz Mohammed',
-    customer_phone: '+91 98470 55432',
-    customer_email: 'fayiz.kerala@example.com',
+    customer_phone: '+91 9037538732',
+    customer_email: 'nexdropkerala@gmail.com',
     items: [
       {
         product_id: 'nx_prod_earbuds',
@@ -615,7 +615,7 @@ export const INITIAL_ORDERS: Order[] = [
     shipping_address: {
       id: 'addr_1',
       name: 'Fayiz Mohammed',
-      phone: '+91 98470 55432',
+      phone: '+91 9037538732',
       street: 'Flat 4B, Skyview Palms, Marine Drive',
       landmark: 'Near High Court Junction',
       district: 'Ernakulam',
@@ -703,16 +703,17 @@ export const INITIAL_REVIEWS: Review[] = [
 export const INITIAL_USER: User = {
   id: 'user_cust_default',
   name: 'Fayiz Mohammed',
-  email: 'mohammedfayizofficial@gmail.com',
-  phone: '+91 98470 55432',
+  email: 'nexdropkerala@gmail.com',
+  phone: '+91 9037538732',
   role: 'customer',
   default_district: 'Ernakulam',
   wishlist: ['nx_prod_smartwatch'],
+  created_at: '2026-01-10',
   addresses: [
     {
       id: 'addr_1',
       name: 'Fayiz Mohammed',
-      phone: '+91 98470 55432',
+      phone: '+91 9037538732',
       street: 'Flat 4B, Skyview Palms, Marine Drive',
       landmark: 'Near High Court Junction',
       district: 'Ernakulam',
@@ -723,7 +724,7 @@ export const INITIAL_USER: User = {
     {
       id: 'addr_2',
       name: 'Fayiz Mohammed (Office)',
-      phone: '+91 98470 55432',
+      phone: '+91 9037538732',
       street: 'Level 3, Infopark Phase 2, Kakkanad',
       landmark: 'Near SmartCity Kochi',
       district: 'Ernakulam',
@@ -733,3 +734,92 @@ export const INITIAL_USER: User = {
     },
   ],
 };
+
+export const INITIAL_CUSTOMERS: User[] = [
+  INITIAL_USER,
+  {
+    id: 'user_ananya_tvm',
+    name: 'Ananya Nair',
+    email: 'ananya.tvm@gmail.com',
+    phone: '+91 94471 88200',
+    role: 'customer',
+    default_district: 'Thiruvananthapuram',
+    wishlist: ['nx_prod_spices'],
+    created_at: '2026-02-14',
+    addresses: [
+      {
+        id: 'addr_tvm_1',
+        name: 'Ananya Nair',
+        phone: '+91 94471 88200',
+        street: 'Manmohan Bungalow, Kowdiar',
+        district: 'Thiruvananthapuram',
+        pin_code: '695001',
+        is_default: true,
+        type: 'Home',
+      },
+    ],
+  },
+  {
+    id: 'user_rashid_clt',
+    name: 'Rashid Calicut',
+    email: 'rashid.clt@yahoo.com',
+    phone: '+91 98950 33411',
+    role: 'customer',
+    default_district: 'Kozhikode',
+    wishlist: ['nx_prod_earbuds'],
+    created_at: '2026-02-28',
+    addresses: [
+      {
+        id: 'addr_clt_1',
+        name: 'Rashid C',
+        phone: '+91 98950 33411',
+        street: 'Beach Road, Near 4th Gate',
+        district: 'Kozhikode',
+        pin_code: '673001',
+        is_default: true,
+        type: 'Home',
+      },
+    ],
+  },
+];
+
+export const INITIAL_REFUNDS = [
+  {
+    id: 'ref_101',
+    order_id: 'ord_108291',
+    order_number: 'NXD-KL-8921',
+    customer_id: 'user_cust_default',
+    customer_name: 'Fayiz Mohammed',
+    seller_id: 'seller_cochin_tech',
+    amount: 3499,
+    reason: 'Size/Fitting issue with linen apparel',
+    status: 'Pending' as const,
+    admin_notes: 'Under review by Kerala support desk',
+    created_at: '2026-03-22',
+  },
+];
+
+export const INITIAL_PAYOUTS = [
+  {
+    id: 'pay_out_101',
+    seller_id: 'seller_cochin_tech',
+    seller_name: 'Cochin Tech Innovations',
+    amount: 145000,
+    commission_deducted: 11600,
+    status: 'Processed' as const,
+    utr_number: 'FDRL-NEFT-KL-89210492',
+    bank_details: 'State Bank of India (•••• 7812)',
+    created_at: '2026-03-20',
+  },
+  {
+    id: 'pay_out_102',
+    seller_id: 'seller_wayanad_organics',
+    seller_name: 'Wayanad Mountain Spices',
+    amount: 88380,
+    commission_deducted: 9820,
+    status: 'Pending' as const,
+    bank_details: 'Federal Bank (•••• 3190)',
+    created_at: '2026-03-25',
+  },
+];
+

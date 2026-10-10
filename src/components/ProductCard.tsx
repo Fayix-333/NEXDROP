@@ -93,13 +93,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div>
           {/* Unboxed Metadata (Zero-Pill Discipline) */}
           <div className="flex items-center gap-2 text-xs text-[#A6B2AA] mb-1.5">
-            <span className="font-semibold uppercase tracking-wider text-[10px] text-white/60">
+            <span className="font-bold uppercase tracking-wider text-[10px] text-[#00F58A]">
               {product.brand}
             </span>
             <span aria-hidden="true">·</span>
-            <span className="flex items-center gap-1 text-[11px] text-white/70">
+            <span className="flex items-center gap-1 text-[10px] text-white/80 font-medium">
               <MapPin className="w-3 h-3 text-[#00F58A]" />
-              {product.seller_district}
+              Authorized {product.seller_district} Hub
             </span>
           </div>
 
@@ -115,7 +115,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <span>{product.rating}</span>
             </div>
             <span aria-hidden="true">·</span>
-            <span>({product.review_count} reviews)</span>
+            <span>({product.review_count} verified ratings)</span>
           </div>
         </div>
 
@@ -132,16 +132,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </span>
               )}
             </div>
-            <p className="text-[10px] text-[#00F58A] font-medium">
-              {product.stock > 0 ? (
-                product.stock < 10 ? (
-                  <span className="text-amber-400">Only {product.stock} left in Kerala</span>
-                ) : (
-                  'Express Delivery Eligible'
-                )
-              ) : (
-                <span className="text-red-400">Currently Out of Stock</span>
-              )}
+            <p className="text-[10px] text-white/50 font-medium">
+              Incl. State & Central GST · {product.stock > 0 ? `${product.stock} in stock` : 'Out of Stock'}
             </p>
           </div>
 

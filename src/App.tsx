@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { CategoryBar } from './components/CategoryBar';
@@ -16,15 +16,19 @@ import { SellerDashboard } from './components/SellerDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { WhatsAppFloatingButton } from './components/WhatsAppFloatingButton';
 import { Footer } from './components/Footer';
+import { CustomerAuthModal } from './components/CustomerAuthModal';
+import { SellerAuthModal } from './components/SellerAuthModal';
+import { CustomerAuthPage } from './components/CustomerAuthPage';
+import { SellerAuthPage } from './components/SellerAuthPage';
 
-import { Product, CartItem, User, Order } from './types';
+import { Product, CartItem, User, Order, Seller, AppView } from './types';
 import { NexdropStore } from './services/storage';
 import { TRANSLATIONS } from './data/translations';
-import { SlidersHorizontal, Sparkles, Flame, Percent, Grid, ArrowUpDown } from 'lucide-react';
+import { Sparkles, Flame, Percent, ArrowUpDown } from 'lucide-react';
 
 export default function App() {
   // Navigation & View state
-  const [currentView, setCurrentView] = useState<'store' | 'customer' | 'seller' | 'admin'>('store');
+  const [currentView, setCurrentView] = useState<AppView>('store');
   const [lang, setLang] = useState<'en' | 'ml'>('en');
   const [selectedDistrict, setSelectedDistrict] = useState('Ernakulam');
 
@@ -44,6 +48,8 @@ export default function App() {
   const [activeProductModal, setActiveProductModal] = useState<Product | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isCustomerAuthOpen, setIsCustomerAuthOpen] = useState(false);
+  const [isSellerAuthOpen, setIsSellerAuthOpen] = useState(false);
 
   // Coupon state
   const [couponCode, setCouponCode] = useState('KERALA100');
@@ -73,6 +79,21 @@ export default function App() {
 
   const handleOrderCompleted = (order: Order) => {
     setCart([]);
+  };
+
+  const handleCustomerAuthSuccess = (authenticatedUser: User) => {
+    setUser(authenticatedUser);
+    setCurrentView('customer');
+  };
+
+  const handleSellerAuthSuccess = (seller: Seller) => {
+    setCurrentView('seller');
+  };
+
+  const handleCustomerLogout = () => {
+    const defaultUser = NexdropStore.getCustomers()[0];
+    setUser(defaultUser);
+    setCurrentView('store');
   };
 
   // Filtered & Sorted products
@@ -114,6 +135,40 @@ export default function App() {
 
   const t = TRANSLATIONS[lang];
 
+  // Dedicated Official Authentication & Operations Views
+  if (currentView === 'customer-login' || currentView === 'customer-register') {
+    return (
+      <CustomerAuthPage
+        initialMode={currentView === 'customer-register' ? 'register' : 'login'}
+        onAuthSuccess={handleCustomerAuthSuccess}
+        onBackToStore={() => setCurrentView('store')}
+        lang={lang}
+        onSwitchToSellerAuth={() => setCurrentView('seller-login')}
+      />
+    );
+  }
+
+  if (currentView === 'seller-login' || currentView === 'seller-register') {
+    return (
+      <SellerAuthPage
+        initialMode={currentView === 'seller-register' ? 'register' : 'login'}
+        onSellerAuthSuccess={handleSellerAuthSuccess}
+        onBackToStore={() => setCurrentView('store')}
+        lang={lang}
+        onSwitchToCustomerAuth={() => setCurrentView('customer-login')}
+      />
+    );
+  }
+
+  if (currentView === 'admin') {
+    return (
+      <AdminDashboard
+        onBackToStore={() => setCurrentView('store')}
+        lang={lang}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-[#050706] text-white">
       {/* Top Navbar */}
@@ -133,6 +188,8 @@ export default function App() {
         onSearchChange={(q) => setSearchQuery(q)}
         products={products}
         onSelectProduct={(p) => setActiveProductModal(p)}
+        onOpenCustomerAuth={() => setCurrentView('customer-login')}
+        onOpenSellerAuth={() => setCurrentView('seller-login')}
       />
 
       {/* Main Content Router */}
@@ -281,8 +338,10 @@ export default function App() {
           <CustomerDashboard
             user={user}
             onSelectProduct={(p) => setActiveProductModal(p)}
+            onAddToCart={handleAddToCart}
             lang={lang}
             onBackToStore={() => setCurrentView('store')}
+            onLogout={handleCustomerLogout}
           />
         )}
 
@@ -290,13 +349,7 @@ export default function App() {
           <SellerDashboard
             onBackToStore={() => setCurrentView('store')}
             lang={lang}
-          />
-        )}
-
-        {currentView === 'admin' && (
-          <AdminDashboard
-            onBackToStore={() => setCurrentView('store')}
-            lang={lang}
+            onOpenSellerAuth={() => setCurrentView('seller-login')}
           />
         )}
       </main>
@@ -312,20 +365,22 @@ export default function App() {
           setCurrentView('store');
           window.scrollTo({ top: 350, behavior: 'smooth' });
         }}
-        onOpenSellerPortal={() => setCurrentView('seller')}
+        onOpenSellerPortal={() => setCurrentView('seller-register')}
+        onNavigateView={(view) => setCurrentView(view)}
       />
 
       {/* Product Detail Modal */}
       {activeProductModal && (
         <ProductDetailModal
           product={activeProductModal}
+          currentUser={user}
           onClose={() => setActiveProductModal(null)}
           onAddToCart={handleAddToCart}
           onBuyNow={handleBuyNow}
           isWishlisted={user.wishlist.includes(activeProductModal.id)}
           onToggleWishlist={handleToggleWishlist}
           lang={lang}
-          initialPin="682001"
+          initialPin={user.addresses?.[0]?.pin_code || "682001"}
         />
       )}
 
@@ -352,6 +407,22 @@ export default function App() {
         couponCode={couponCode}
         appliedDiscount={appliedDiscount}
         onOrderCompleted={handleOrderCompleted}
+        lang={lang}
+      />
+
+      {/* Customer Auth Modal (Login / Sign Up / Forgot Password) */}
+      <CustomerAuthModal
+        isOpen={isCustomerAuthOpen}
+        onClose={() => setIsCustomerAuthOpen(false)}
+        onAuthSuccess={handleCustomerAuthSuccess}
+        lang={lang}
+      />
+
+      {/* Seller Auth Modal (Merchant Login & Business Onboarding) */}
+      <SellerAuthModal
+        isOpen={isSellerAuthOpen}
+        onClose={() => setIsSellerAuthOpen(false)}
+        onSellerAuthSuccess={handleSellerAuthSuccess}
         lang={lang}
       />
     </div>

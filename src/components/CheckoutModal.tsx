@@ -15,6 +15,12 @@ import {
 } from 'lucide-react';
 import { CartItem, User, Address, Order, PaymentMethod } from '../types';
 import { NexdropStore } from '../services/storage';
+import { KERALA_DISTRICTS } from '../data/mockData';
+import {
+  lookupKeralaPincode,
+  lookupKeralaPincodeSync,
+  KeralaPlaceInfo,
+} from '../services/keralaPincode';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -51,7 +57,31 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [newAddrStreet, setNewAddrStreet] = useState('');
   const [newAddrDistrict, setNewAddrDistrict] = useState(user.default_district || 'Ernakulam');
   const [newAddrPin, setNewAddrPin] = useState('682001');
-  const [newAddrPhone, setNewAddrPhone] = useState(user.phone || '+91 98470 55432');
+  const [newAddrPhone, setNewAddrPhone] = useState(user.phone || '+91 9037538732');
+  const [detectedNewPlace, setDetectedNewPlace] = useState<KeralaPlaceInfo | null>(() =>
+    lookupKeralaPincodeSync('682001')
+  );
+
+  const handleNewPinChange = async (val: string) => {
+    const cleaned = val.replace(/\D/g, '').slice(0, 6);
+    setNewAddrPin(cleaned);
+    if (cleaned.length === 6) {
+      const syncRes = lookupKeralaPincodeSync(cleaned);
+      if (syncRes && syncRes.isKerala) {
+        setDetectedNewPlace(syncRes);
+        setNewAddrDistrict(syncRes.district);
+      }
+      try {
+        const live = await lookupKeralaPincode(cleaned);
+        if (live && live.isKerala) {
+          setDetectedNewPlace(live);
+          setNewAddrDistrict(live.district);
+        }
+      } catch (err) {
+        // sync handled
+      }
+    }
+  };
 
   const currentAddress = user.addresses[selectedAddressIndex] || {
     id: 'temp_addr',
@@ -185,29 +215,57 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                           onChange={(e) => setNewAddrDistrict(e.target.value)}
                           className="w-full p-2.5 rounded-xl text-xs glass-input bg-[#101411] text-white mt-1"
                         >
-                          <option value="Ernakulam">Ernakulam</option>
-                          <option value="Thiruvananthapuram">Thiruvananthapuram</option>
-                          <option value="Kozhikode">Kozhikode</option>
-                          <option value="Thrissur">Thrissur</option>
-                          <option value="Kannur">Kannur</option>
-                          <option value="Wayanad">Wayanad</option>
-                          <option value="Kottayam">Kottayam</option>
-                          <option value="Alappuzha">Alappuzha</option>
+                          {KERALA_DISTRICTS.map((d) => (
+                            <option key={d} value={d}>
+                              {d}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div>
-                        <label className="text-[11px] text-[#A6B2AA]">6-Digit PIN Code</label>
+                        <label className="text-[11px] text-[#A6B2AA]">6-Digit Kerala PIN Code</label>
                         <input
                           type="text"
                           required
                           maxLength={6}
                           value={newAddrPin}
-                          onChange={(e) => setNewAddrPin(e.target.value)}
-                          placeholder="682001"
-                          className="w-full p-2.5 rounded-xl text-xs glass-input mt-1 font-mono"
+                          onChange={(e) => handleNewPinChange(e.target.value)}
+                          placeholder="e.g. 682001"
+                          className="w-full p-2.5 rounded-xl text-xs glass-input mt-1 font-mono tracking-wider"
                         />
                       </div>
                     </div>
+
+                    {/* Identified Kerala Place Feedback */}
+                    {detectedNewPlace && detectedNewPlace.isKerala && (
+                      <div className="p-3 rounded-xl bg-[#00F58A]/10 border border-[#00F58A]/30 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-white flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#00F58A]" />
+                            📍 Place Identified: {detectedNewPlace.placeName}
+                          </span>
+                          <span className="font-mono text-[11px] text-[#00F58A] bg-black/40 px-2 py-0.5 rounded font-bold">
+                            {detectedNewPlace.pincode}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-white/70 mt-1">
+                          {detectedNewPlace.district} District
+                          {detectedNewPlace.districtMalayalam && ` (${detectedNewPlace.districtMalayalam})`}
+                          {detectedNewPlace.talukOrBlock && ` · ${detectedNewPlace.talukOrBlock}`}
+                          {' · '}
+                          <span className="text-[#00F58A]">{detectedNewPlace.deliverySpeed} Delivery</span>
+                        </p>
+                        {detectedNewPlace.postOffices && detectedNewPlace.postOffices.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {detectedNewPlace.postOffices.slice(0, 3).map((po, i) => (
+                              <span key={i} className="text-[10px] bg-black/40 text-white/80 px-1.5 py-0.5 rounded border border-white/5">
+                                📮 {po}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <button
                       type="submit"
                       className="w-full py-2.5 rounded-xl bg-[#00F58A] text-black font-bold text-xs"

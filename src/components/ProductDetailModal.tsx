@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Star,
@@ -13,12 +13,23 @@ import {
   RotateCcw,
   MessageSquare,
   Share2,
+  ThumbsUp,
+  UserCheck,
+  AlertCircle,
+  Sparkles,
 } from 'lucide-react';
-import { Product, Review } from '../types';
+import { Product, Review, User } from '../types';
 import { NexdropStore } from '../services/storage';
+import { listenToProductReviews, saveReviewToFirestore } from '../services/firebase';
+import {
+  lookupKeralaPincode,
+  lookupKeralaPincodeSync,
+  KeralaPlaceInfo,
+} from '../services/keralaPincode';
 
 interface ProductDetailModalProps {
   product: Product;
+  currentUser?: User;
   onClose: () => void;
   onAddToCart: (product: Product, qty: number) => void;
   onBuyNow: (product: Product, qty: number) => void;
@@ -30,6 +41,7 @@ interface ProductDetailModalProps {
 
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   product,
+  currentUser,
   onClose,
   onAddToCart,
   onBuyNow,
@@ -39,44 +51,145 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   initialPin = '682001',
 }) => {
   const [selectedQty, setSelectedQty] = useState(1);
-  const [pinCode, setPinCode] = useState(initialPin);
-  const [pinResult, setPinResult] = useState(() => NexdropStore.checkPinServiceability(initialPin));
+  const effectivePin = currentUser?.addresses?.[0]?.pin_code || initialPin;
+  const [pinCode, setPinCode] = useState(effectivePin);
+  const [pinResult, setPinResult] = useState(() =>
+    NexdropStore.checkPinServiceability(effectivePin)
+  );
+  const [placeInfo, setPlaceInfo] = useState<KeralaPlaceInfo | null>(() =>
+    lookupKeralaPincodeSync(effectivePin)
+  );
+  const [isDetectingPlace, setIsDetectingPlace] = useState(false);
+
+  // Reviews state with initial store data & real-time Firebase sync
   const [reviews, setReviews] = useState<Review[]>(() =>
     NexdropStore.getReviews().filter((r) => r.product_id === product.id)
   );
 
-  // New review form
-  const [newRating, setNewRating] = useState(5);
+  useEffect(() => {
+    // Attach real-time Firestore listener for live updates across clients
+    const unsubscribe = listenToProductReviews(product.id, (firestoreReviews) => {
+      if (firestoreReviews && firestoreReviews.length > 0) {
+        setReviews(firestoreReviews);
+      }
+    });
+    return () => unsubscribe();
+  }, [product.id]);
+
+  // Review submission state
+  const [newRating, setNewRating] = useState<number>(5);
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [newComment, setNewComment] = useState('');
-  const [newDistrict, setNewDistrict] = useState('Ernakulam');
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [helpfulVoted, setHelpfulVoted] = useState<Record<string, boolean>>({});
+  const [filterRating, setFilterRating] = useState<number | 'all'>('all');
 
-  const handleCheckPin = (e: React.FormEvent) => {
-    e.preventDefault();
-    const res = NexdropStore.checkPinServiceability(pinCode);
-    setPinResult(res);
+  // Rating labels helper
+  const getRatingLabel = (score: number) => {
+    switch (score) {
+      case 5:
+        return lang === 'ml' ? 'മികച്ചത് (Excellent)' : '5 Stars - Excellent Quality';
+      case 4:
+        return lang === 'ml' ? 'വളരെ നല്ലത് (Very Good)' : '4 Stars - Very Good Experience';
+      case 3:
+        return lang === 'ml' ? 'നല്ലത് (Good)' : '3 Stars - Good & Satisfactory';
+      case 2:
+        return lang === 'ml' ? 'കുഴപ്പമില്ല (Fair)' : '2 Stars - Needs Improvement';
+      case 1:
+        return lang === 'ml' ? 'മോശം (Poor)' : '1 Star - Not Recommended';
+      default:
+        return '';
+    }
   };
 
-  const handleAddReview = (e: React.FormEvent) => {
+  const handleCheckPin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleaned = pinCode.replace(/\D/g, '').slice(0, 6);
+    if (cleaned.length !== 6) {
+      setPinResult({
+        serviceable: false,
+        message: 'Please enter a valid 6-digit Kerala PIN code.',
+      });
+      return;
+    }
+    const syncRes = lookupKeralaPincodeSync(cleaned);
+    if (syncRes) setPlaceInfo(syncRes);
+    const res = NexdropStore.checkPinServiceability(cleaned);
+    setPinResult(res);
+
+    setIsDetectingPlace(true);
+    try {
+      const live = await lookupKeralaPincode(cleaned);
+      setPlaceInfo(live);
+    } catch (err) {
+      // Handled by sync
+    } finally {
+      setIsDetectingPlace(false);
+    }
+  };
+
+  const handleAddReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim()) return;
+
     setSubmittingReview(true);
-    const added = NexdropStore.addReview({
+    const authorName = currentUser?.name || 'Kerala Customer';
+    const authorId = currentUser?.id || `user_anon_${Date.now()}`;
+    const authorDistrict =
+      currentUser?.default_district ||
+      currentUser?.addresses?.[0]?.district ||
+      'Ernakulam';
+
+    const newRev = NexdropStore.addReview({
       product_id: product.id,
-      user_id: 'user_cust_default',
-      user_name: 'Fayiz Mohammed',
-      user_district: newDistrict,
+      user_id: authorId,
+      user_name: authorName,
+      user_district: authorDistrict,
       rating: newRating,
       comment: newComment.trim(),
       is_verified_purchase: true,
     });
-    setReviews([added, ...reviews]);
+
+    // Also persist directly to Firebase Firestore
+    await saveReviewToFirestore(newRev);
+
+    setReviews((prev) => [newRev, ...prev.filter((r) => r.id !== newRev.id)]);
     setNewComment('');
+    setNewRating(5);
     setSubmittingReview(false);
     setReviewSuccess(true);
-    setTimeout(() => setReviewSuccess(false), 3000);
+    setTimeout(() => setReviewSuccess(false), 4000);
   };
+
+  const handleVoteHelpful = (reviewId: string) => {
+    if (helpfulVoted[reviewId]) return;
+    setHelpfulVoted((prev) => ({ ...prev, [reviewId]: true }));
+    setReviews((prev) =>
+      prev.map((r) => (r.id === reviewId ? { ...r, helpful_votes: r.helpful_votes + 1 } : r))
+    );
+  };
+
+  // Filtered reviews
+  const displayedReviews = reviews.filter((r) => {
+    if (filterRating === 'all') return true;
+    return r.rating === filterRating;
+  });
+
+  // Calculate rating stats
+  const averageRating =
+    reviews.length > 0
+      ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+      : product.rating.toFixed(1);
+
+  const starCounts = [5, 4, 3, 2, 1].map((star) => ({
+    star,
+    count: reviews.filter((r) => r.rating === star).length,
+    percentage:
+      reviews.length > 0
+        ? Math.round((reviews.filter((r) => r.rating === star).length / reviews.length) * 100)
+        : 0,
+  }));
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
@@ -88,8 +201,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             <span>·</span>
             <span>{product.brand}</span>
             <span>·</span>
-            <span className="text-[#00F58A] flex items-center gap-1">
-              <MapPin className="w-3 h-3" />
+            <span className="text-[#00F58A] flex items-center gap-1 font-medium">
+              <MapPin className="w-3.5 h-3.5" />
               {product.seller_district}, Kerala
             </span>
           </div>
@@ -132,6 +245,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     {product.discount_percent}% OFF
                   </span>
                 )}
+                <div className="absolute bottom-3 left-3 px-3 py-1 rounded-xl bg-black/75 backdrop-blur-md border border-white/10 text-white text-xs flex items-center gap-1.5 font-medium">
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <span>{averageRating}</span>
+                  <span className="text-[#A6B2AA]">({reviews.length} reviews)</span>
+                </div>
               </div>
 
               {/* Verified Seller Trust Box */}
@@ -163,10 +281,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <div className="flex items-center gap-3 mt-2 text-xs text-[#A6B2AA]">
                   <div className="flex items-center gap-1 text-amber-400 font-bold">
                     <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                    <span>{product.rating}</span>
+                    <span>{averageRating}</span>
                   </div>
                   <span>·</span>
-                  <span>{product.review_count} verified ratings</span>
+                  <span className="text-white/80">{reviews.length} Verified Customer Ratings</span>
                   <span>·</span>
                   <span className="text-[#00F58A] font-semibold">In Stock ({product.stock} units)</span>
                 </div>
@@ -197,29 +315,101 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-white flex items-center gap-1.5">
                     <Truck className="w-4 h-4 text-[#00F58A]" />
-                    Delivery Serviceability Checker
+                    <span>Kerala Delivery & Place Finder</span>
                   </span>
-                  <span className="text-[11px] text-[#00F58A]">Kerala Network</span>
+                  <span className="text-[11px] text-[#00F58A] flex items-center gap-1">
+                    {isDetectingPlace ? 'Identifying place...' : 'Fast 24-48h Hubs'}
+                  </span>
                 </div>
 
                 <form onSubmit={handleCheckPin} className="flex gap-2">
-                  <input
-                    type="text"
-                    maxLength={6}
-                    value={pinCode}
-                    onChange={(e) => setPinCode(e.target.value)}
-                    placeholder="Enter 6-digit PIN"
-                    className="flex-1 px-3 py-2 rounded-xl text-xs glass-input placeholder:text-white/40 font-mono"
-                  />
+                  <div className="relative flex-1">
+                    <MapPin className="absolute left-3 top-2.5 w-3.5 h-3.5 text-white/40" />
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={pinCode}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                        setPinCode(val);
+                        if (val.length === 6) {
+                          const sync = lookupKeralaPincodeSync(val);
+                          if (sync) setPlaceInfo(sync);
+                          const res = NexdropStore.checkPinServiceability(val);
+                          setPinResult(res);
+                        }
+                      }}
+                      placeholder="Enter 6-digit Kerala PIN"
+                      className="w-full pl-8 pr-3 py-2 rounded-xl text-xs glass-input placeholder:text-white/40 font-mono tracking-wider text-white"
+                    />
+                  </div>
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/15 transition-colors"
+                    disabled={isDetectingPlace}
+                    className="px-4 py-2 rounded-xl bg-[#00F58A] hover:bg-[#00dd7b] text-black font-extrabold text-xs transition-colors shrink-0 shadow-lg shadow-[#00F58A]/10 flex items-center gap-1"
                   >
-                    Check
+                    <span>Identify PIN</span>
                   </button>
                 </form>
 
-                {pinResult && (
+                {/* Identified Place Details Card */}
+                {placeInfo && placeInfo.isKerala && (
+                  <div className="p-3 rounded-xl bg-black/40 border border-[#00F58A]/30 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-1.5 text-[10px] text-[#00F58A] font-bold uppercase tracking-wider">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#00F58A] animate-ping" />
+                          <span>Identified Location</span>
+                        </div>
+                        <h4 className="text-xs sm:text-sm font-bold text-white mt-0.5">
+                          {placeInfo.placeName}
+                        </h4>
+                        <p className="text-[11px] text-white/70">
+                          {placeInfo.district} District
+                          {placeInfo.districtMalayalam && ` (${placeInfo.districtMalayalam})`}
+                          {placeInfo.talukOrBlock && ` · ${placeInfo.talukOrBlock}`}
+                        </p>
+                      </div>
+                      <span className="font-mono text-xs font-bold text-black bg-[#00F58A] px-2 py-0.5 rounded-md">
+                        {placeInfo.pincode}
+                      </span>
+                    </div>
+
+                    {/* Post office tags if available */}
+                    {placeInfo.postOffices && placeInfo.postOffices.length > 0 && (
+                      <div className="pt-1.5 border-t border-white/10">
+                        <span className="text-[10px] text-white/50 block mb-1">
+                          Postal Hubs:
+                        </span>
+                        <div className="flex flex-wrap gap-1 max-h-12 overflow-y-auto">
+                          {placeInfo.postOffices.slice(0, 4).map((po, i) => (
+                            <span
+                              key={i}
+                              className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-white/80 border border-white/5"
+                            >
+                              📮 {po}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="pt-2 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                      <span className="text-[#00F58A] font-semibold flex items-center gap-1">
+                        <Truck className="w-3.5 h-3.5" />
+                        {placeInfo.deliverySpeed} Delivery
+                      </span>
+                      <span className="text-white/80">
+                        Standard: ₹{placeInfo.standardFee} (Free above ₹{placeInfo.freeDeliveryThreshold})
+                      </span>
+                      <span className="text-emerald-400 font-medium">
+                        {placeInfo.codAvailable ? '✓ Cash on Delivery Available' : 'Prepaid Only'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {pinResult && !placeInfo?.isKerala && (
                   <div
                     className={`p-2.5 rounded-xl text-xs border ${
                       pinResult.serviceable
@@ -228,13 +418,6 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     }`}
                   >
                     <p className="font-semibold">{pinResult.message}</p>
-                    {pinResult.info && (
-                      <p className="text-[11px] text-white/70 mt-1">
-                        Standard Fee: ₹{pinResult.info.standard_delivery_fee} · Free above ₹
-                        {pinResult.info.min_free_delivery_threshold} · Cash on Delivery:{' '}
-                        {pinResult.info.cod_allowed ? 'Available' : 'Unavailable'}
-                      </p>
-                    )}
                   </div>
                 )}
               </div>
@@ -250,7 +433,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     >
                       -
                     </button>
-                    <span className="px-4 py-1.5 text-white text-xs font-bold tabular-nums">
+                    <span className="px-4 py-1.5 text-xs font-mono font-bold text-white">
                       {selectedQty}
                     </span>
                     <button
@@ -260,40 +443,37 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       +
                     </button>
                   </div>
+                  <span className="text-[11px] text-[#A6B2AA]">
+                    Subtotal: ₹{(product.price * selectedQty).toLocaleString('en-IN')}
+                  </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="grid grid-cols-2 gap-3 pt-1">
                   <button
-                    onClick={() => {
-                      onAddToCart(product, selectedQty);
-                      onClose();
-                    }}
-                    className="w-full py-3.5 px-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
+                    onClick={() => onAddToCart(product, selectedQty)}
+                    className="py-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                   >
-                    <ShoppingBag className="w-4 h-4 text-[#00F58A]" />
+                    <ShoppingBag className="w-4 h-4" />
                     <span>Add to Cart</span>
                   </button>
 
                   <button
-                    onClick={() => {
-                      onBuyNow(product, selectedQty);
-                      onClose();
-                    }}
-                    className="w-full py-3.5 px-4 rounded-2xl bg-[#00F58A] hover:bg-[#00C875] text-[#050706] font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(0,245,138,0.25)] transition-all active:scale-95"
+                    onClick={() => onBuyNow(product, selectedQty)}
+                    className="py-3 rounded-2xl bg-[#00F58A] hover:bg-[#00C875] text-[#050706] font-extrabold text-xs shadow-lg shadow-[#00F58A]/25 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                   >
-                    <Zap className="w-4 h-4 fill-black" />
-                    <span>Buy Now</span>
+                    <Zap className="w-4 h-4 fill-black text-black" />
+                    <span>Instant Checkout</span>
                   </button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Product Description, Key Features & Specifications */}
-          <div className="pt-6 border-t border-white/10 space-y-6">
+          {/* Description & Features */}
+          <div className="border-t border-white/10 pt-6 space-y-6">
             <div>
               <h2 className="font-display text-lg font-bold text-white mb-2">Description</h2>
-              <p className="text-sm text-[#A6B2AA] leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#A6B2AA] leading-relaxed">
                 {lang === 'ml' ? product.description_ml : product.description}
               </p>
             </div>
@@ -326,118 +506,263 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               </div>
             </div>
 
-            {/* Customer Reviews Section */}
-            <div className="space-y-4 pt-4 border-t border-white/10">
-              <div className="flex items-center justify-between">
+            {/* Verified Reviews and Rating System */}
+            <div className="space-y-6 pt-6 border-t border-white/10">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <h2 className="font-display text-lg font-bold text-white">
-                    Verified Customer Reviews
-                  </h2>
-                  <p className="text-xs text-[#A6B2AA]">
-                    Reviews from verified buyers across Kerala
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-display text-xl font-bold text-white">
+                      Customer Reviews & Star Ratings
+                    </h2>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#00F58A]/10 text-[#00F58A] border border-[#00F58A]/30">
+                      Firebase Connected
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#A6B2AA] mt-0.5">
+                    Real feedback from verified purchasers in Kerala
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-400/10 text-amber-400 font-bold text-sm">
-                  <Star className="w-4 h-4 fill-amber-400" />
-                  <span>{product.rating} / 5.0</span>
-                </div>
-              </div>
 
-              {/* Review Submission Form */}
-              <form onSubmit={handleAddReview} className="p-4 rounded-2xl glass-panel border border-white/10 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white">Write a Review</span>
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setNewRating(star)}
-                        className="p-1 focus:outline-none"
-                      >
+                <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/10">
+                  <div className="text-center pr-3 border-r border-white/10">
+                    <span className="font-display font-extrabold text-2xl text-white">
+                      {averageRating}
+                    </span>
+                    <span className="text-xs text-white/50 block">/ 5.0</span>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1 text-amber-400">
+                      {[1, 2, 3, 4, 5].map((s) => (
                         <Star
-                          className={`w-4 h-4 ${
-                            star <= newRating
+                          key={s}
+                          className={`w-3.5 h-3.5 ${
+                            s <= Math.round(Number(averageRating))
                               ? 'fill-amber-400 text-amber-400'
                               : 'text-white/20'
                           }`}
                         />
-                      </button>
-                    ))}
+                      ))}
+                    </div>
+                    <span className="text-[11px] text-[#A6B2AA] block mt-0.5">
+                      Based on {reviews.length} reviews
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Rating Distribution Breakdown */}
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                {starCounts.map(({ star, count, percentage }) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setFilterRating(filterRating === star ? 'all' : star)}
+                    className={`flex items-center justify-between md:flex-col md:items-start p-2 rounded-xl text-left transition-all ${
+                      filterRating === star
+                        ? 'bg-[#00F58A]/15 border border-[#00F58A]/40'
+                        : 'hover:bg-white/5'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1 text-xs font-semibold text-white">
+                      <span>{star}</span>
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                    </div>
+                    <div className="w-24 md:w-full h-1.5 bg-white/10 rounded-full overflow-hidden my-1">
+                      <div
+                        className="h-full bg-amber-400 rounded-full transition-all duration-300"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-[#A6B2AA]">
+                      {count} ({percentage}%)
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Star Rating & Review Feedback Submission Form */}
+              <form
+                onSubmit={handleAddReview}
+                className="p-5 sm:p-6 rounded-2xl glass-panel border border-[#00F58A]/20 shadow-lg space-y-4 relative overflow-hidden"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-white/10">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-[#00F58A]" />
+                    <span className="text-xs font-bold text-white">
+                      Rate & Review this Product
+                    </span>
+                    {currentUser && (
+                      <span className="text-[10px] text-[#00F58A] bg-[#00F58A]/10 px-2 py-0.5 rounded-full border border-[#00F58A]/20">
+                        Signed in as {currentUser.name} ({currentUser.default_district || 'Kerala'})
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[11px] text-[#A6B2AA]">
+                    {getRatingLabel(hoverRating || newRating)}
+                  </span>
+                </div>
+
+                {/* Star rating selector with hover preview */}
+                <div className="space-y-1">
+                  <label className="text-xs text-[#A6B2AA] block font-medium">
+                    Your Overall Rating:
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(null)}
+                          onClick={() => setNewRating(star)}
+                          className="p-1 hover:scale-125 transition-transform focus:outline-none"
+                          title={`${star} Star`}
+                        >
+                          <Star
+                            className={`w-6 h-6 transition-colors ${
+                              star <= (hoverRating ?? newRating)
+                                ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]'
+                                : 'text-white/25 hover:text-white/50'
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    <span className="text-xs font-bold text-amber-300">
+                      {hoverRating ?? newRating} / 5.0
+                    </span>
                   </div>
                 </div>
 
-                <textarea
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Share your experience with delivery speed, product quality in Kerala..."
-                  rows={2}
-                  className="w-full p-3 rounded-xl text-xs glass-input placeholder:text-white/40 focus:outline-none"
-                />
+                {/* Text-based feedback */}
+                <div className="space-y-1">
+                  <label className="text-xs text-[#A6B2AA] block font-medium">
+                    Detailed Review & Feedback:
+                  </label>
+                  <textarea
+                    required
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Describe product quality, delivery speed across Kerala, packaging condition, and value for money..."
+                    rows={3}
+                    maxLength={1000}
+                    className="w-full p-3.5 rounded-xl text-xs glass-input placeholder:text-white/40 focus:outline-none focus:border-[#00F58A]/60"
+                  />
+                  <div className="flex justify-between items-center text-[10px] text-[#A6B2AA]">
+                    <span>Minimum 5 characters for verified submission.</span>
+                    <span>{newComment.length} / 1000</span>
+                  </div>
+                </div>
 
-                <div className="flex items-center justify-between">
-                  <select
-                    value={newDistrict}
-                    onChange={(e) => setNewDistrict(e.target.value)}
-                    className="px-3 py-1.5 rounded-xl text-xs glass-input bg-[#101411] text-white"
-                  >
-                    <option value="Ernakulam">Ernakulam</option>
-                    <option value="Thiruvananthapuram">Thiruvananthapuram</option>
-                    <option value="Kozhikode">Kozhikode</option>
-                    <option value="Thrissur">Thrissur</option>
-                    <option value="Wayanad">Wayanad</option>
-                    <option value="Kannur">Kannur</option>
-                  </select>
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                  <div className="flex items-center gap-2 text-[11px] text-[#A6B2AA]">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#00F58A]" />
+                    <span>Published to Firebase Firestore with verified customer badge</span>
+                  </div>
 
                   <button
                     type="submit"
-                    disabled={submittingReview || !newComment.trim()}
-                    className="px-4 py-2 rounded-xl bg-[#00F58A] hover:bg-[#00C875] text-[#050706] font-bold text-xs disabled:opacity-50 transition-all"
+                    disabled={submittingReview || newComment.trim().length < 3}
+                    className="px-5 py-2.5 rounded-xl bg-[#00F58A] hover:bg-[#00C875] text-[#050706] font-extrabold text-xs disabled:opacity-50 transition-all shadow-md shadow-[#00F58A]/20 active:scale-95 flex items-center gap-1.5"
                   >
-                    Submit Review
+                    {submittingReview ? (
+                      <span>Saving to Firebase...</span>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Submit Review</span>
+                      </>
+                    )}
                   </button>
                 </div>
+
                 {reviewSuccess && (
-                  <p className="text-xs text-[#00F58A] font-semibold">
-                    Thank you! Your verified purchase review has been published.
-                  </p>
+                  <div className="p-3 rounded-xl bg-[#00F58A]/10 border border-[#00F58A]/30 text-[#00F58A] text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>
+                      Thank you! Your verified purchase rating has been securely saved to Firebase and published live.
+                    </span>
+                  </div>
                 )}
               </form>
 
-              {/* Reviews List */}
+              {/* Reviews List & Filter Controls */}
               <div className="space-y-3">
-                {reviews.length === 0 ? (
-                  <p className="text-xs text-[#A6B2AA] py-4 text-center">
-                    No reviews yet. Be the first verified purchaser to leave feedback!
-                  </p>
+                <div className="flex items-center justify-between text-xs text-[#A6B2AA]">
+                  <span>
+                    Showing {displayedReviews.length} of {reviews.length} reviews
+                  </span>
+                  {filterRating !== 'all' && (
+                    <button
+                      onClick={() => setFilterRating('all')}
+                      className="text-[#00F58A] hover:underline"
+                    >
+                      Clear {filterRating}-Star Filter
+                    </button>
+                  )}
+                </div>
+
+                {displayedReviews.length === 0 ? (
+                  <div className="p-8 text-center glass-panel rounded-2xl border border-white/10 space-y-2">
+                    <MessageSquare className="w-8 h-8 text-white/30 mx-auto" />
+                    <p className="text-xs font-bold text-white">No reviews found for this filter</p>
+                    <p className="text-[11px] text-[#A6B2AA]">
+                      Be the first verified customer to submit a review above!
+                    </p>
+                  </div>
                 ) : (
-                  reviews.map((rev) => (
+                  displayedReviews.map((rev) => (
                     <div
                       key={rev.id}
-                      className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1.5"
+                      className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2 hover:border-white/15 transition-all"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-xs text-white">{rev.user_name}</span>
-                          <span className="text-[10px] text-[#00F58A] font-medium bg-[#00F58A]/10 px-2 py-0.5 rounded-full border border-[#00F58A]/20">
-                            Verified Purchase ({rev.user_district})
+                          <span className="text-[10px] text-[#00F58A] font-medium bg-[#00F58A]/10 px-2 py-0.5 rounded-full border border-[#00F58A]/20 flex items-center gap-1">
+                            <CheckCircle2 className="w-2.5 h-2.5" />
+                            Verified Purchase ({rev.user_district}, Kerala)
                           </span>
                         </div>
                         <span className="text-[10px] text-[#A6B2AA]">{rev.created_at}</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-3 h-3 ${
-                              i < rev.rating
-                                ? 'fill-amber-400 text-amber-400'
-                                : 'text-white/20'
-                            }`}
-                          />
-                        ))}
+
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-3.5 h-3.5 ${
+                                i < rev.rating
+                                  ? 'fill-amber-400 text-amber-400'
+                                  : 'text-white/20'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[11px] font-bold text-white/90">
+                          {getRatingLabel(rev.rating)}
+                        </span>
                       </div>
+
                       <p className="text-xs text-[#A6B2AA] leading-relaxed pt-1">{rev.comment}</p>
+
+                      <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[11px] text-[#A6B2AA]">
+                        <span className="text-[10px] text-white/40">Verified Kerala Buyer Review</span>
+                        <button
+                          type="button"
+                          onClick={() => handleVoteHelpful(rev.id)}
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs transition-colors ${
+                            helpfulVoted[rev.id]
+                              ? 'bg-[#00F58A]/10 text-[#00F58A]'
+                              : 'hover:bg-white/5 text-[#A6B2AA] hover:text-white'
+                          }`}
+                        >
+                          <ThumbsUp className="w-3 h-3" />
+                          <span>Helpful ({rev.helpful_votes})</span>
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}

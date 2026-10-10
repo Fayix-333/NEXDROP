@@ -11,6 +11,9 @@ import {
   Address,
   OrderStatus,
   PaymentMethod,
+  RefundRequest,
+  SellerPayout,
+  NotificationItem,
 } from '../types';
 import {
   INITIAL_PRODUCTS,
@@ -21,7 +24,17 @@ import {
   INITIAL_ORDERS,
   INITIAL_REVIEWS,
   INITIAL_USER,
+  INITIAL_CUSTOMERS,
+  INITIAL_REFUNDS,
+  INITIAL_PAYOUTS,
 } from '../data/mockData';
+import { lookupKeralaPincodeSync } from './keralaPincode';
+import {
+  saveUserToFirestore,
+  saveOrderToFirestore,
+  saveReviewToFirestore,
+  updateOrderStatusInFirestore,
+} from './firebase';
 
 const PREFIX = 'nexdrop_v1_';
 
@@ -99,24 +112,24 @@ export class NexdropStore {
     }
     const match = this.getPinCodes().find((p) => p.pin_code === cleaned);
     if (!match) {
-      // General Kerala PIN heuristic (670xxx - 695xxx)
-      const num = parseInt(cleaned, 10);
-      if (num >= 670000 && num <= 695999) {
+      // Automatic Kerala PIN & Place Resolution
+      const placeLookup = lookupKeralaPincodeSync(cleaned);
+      if (placeLookup && placeLookup.isKerala) {
         return {
           serviceable: true,
           info: {
             pin_code: cleaned,
-            district: 'Kerala (Standard Region)',
-            area_name: 'Standard Kerala Hub',
+            district: placeLookup.district,
+            area_name: placeLookup.placeName,
             is_serviceable: true,
-            standard_delivery_fee: 55,
-            express_available: false,
-            express_delivery_fee: 120,
-            cod_allowed: true,
-            min_free_delivery_threshold: 699,
-            estimated_days: 3,
+            standard_delivery_fee: placeLookup.standardFee,
+            express_available: placeLookup.expressAvailable,
+            express_delivery_fee: placeLookup.expressFee,
+            cod_allowed: placeLookup.codAvailable,
+            min_free_delivery_threshold: placeLookup.freeDeliveryThreshold,
+            estimated_days: placeLookup.estimatedDays,
           },
-          message: 'Serviceable via Kerala Standard Surface Logistics (2-3 days).',
+          message: `Identified: ${placeLookup.placeName}, ${placeLookup.district} (${placeLookup.deliverySpeed} Delivery).`,
         };
       }
       return {
@@ -293,6 +306,7 @@ export class NexdropStore {
 
     orders.unshift(newOrder);
     this.saveOrders(orders);
+    saveOrderToFirestore(newOrder);
 
     // Update stock & seller stats
     const products = this.getProducts();
@@ -315,6 +329,7 @@ export class NexdropStore {
   }
 
   static updateOrderStatus(orderId: string, status: OrderStatus, locationNote?: string): void {
+    let changedOrder: Order | null = null;
     const orders = this.getOrders().map((ord) => {
       if (ord.id === orderId) {
         const updated = { ...ord, shipping_status: status, updated_at: new Date().toISOString() };
@@ -327,11 +342,15 @@ export class NexdropStore {
             completed: true,
           });
         }
+        changedOrder = updated;
         return updated;
       }
       return ord;
     });
     this.saveOrders(orders);
+    if (changedOrder) {
+      saveOrderToFirestore(changedOrder);
+    }
   }
 
   // Reviews
@@ -349,6 +368,7 @@ export class NexdropStore {
     };
     reviews.unshift(newReview);
     setStored('reviews', reviews);
+    saveReviewToFirestore(newReview);
 
     // Update product rating & review count
     const products = this.getProducts();
@@ -365,11 +385,35 @@ export class NexdropStore {
 
   // Current User State
   static getUser(): User {
-    return getStored<User>('user', INITIAL_USER);
+    const u = getStored<User>('user', INITIAL_USER);
+    if (u) {
+      let modified = false;
+      if (u.phone === '+91 98470 55432' || !u.phone) {
+        u.phone = '+91 9037538732';
+        modified = true;
+      }
+      if (u.email === 'mohammedfayizofficial@gmail.com' || u.email === 'fayiz.kerala@example.com') {
+        u.email = 'nexdropkerala@gmail.com';
+        modified = true;
+      }
+      if (u.addresses) {
+        u.addresses.forEach((addr) => {
+          if (addr.phone === '+91 98470 55432' || !addr.phone) {
+            addr.phone = '+91 9037538732';
+            modified = true;
+          }
+        });
+      }
+      if (modified) {
+        setStored('user', u);
+      }
+    }
+    return u;
   }
 
   static saveUser(user: User): void {
     setStored('user', user);
+    saveUserToFirestore(user);
   }
 
   static toggleWishlist(productId: string): string[] {
@@ -428,5 +472,194 @@ export class NexdropStore {
 
   static clearCart(): void {
     this.saveCart([]);
+  }
+
+  // Customer Accounts & Auth
+  static getCustomers(): User[] {
+    return getStored<User[]>('customers', INITIAL_CUSTOMERS);
+  }
+
+  static saveCustomers(customers: User[]): void {
+    setStored('customers', customers);
+  }
+
+  static registerCustomer(data: { name: string; email: string; phone: string; district: string; pin_code?: string }): User {
+    const customers = this.getCustomers();
+    const pin = data.pin_code && /^\d{6}$/.test(data.pin_code.trim()) ? data.pin_code.trim() : '682001';
+    const newUser: User = {
+      id: `user_cust_${Date.now()}`,
+      name: data.name,
+      email: data.email.toLowerCase(),
+      phone: data.phone,
+      role: 'customer',
+      default_district: data.district,
+      wishlist: [],
+      created_at: new Date().toISOString().split('T')[0],
+      addresses: [
+        {
+          id: `addr_${Date.now()}`,
+          name: data.name,
+          phone: data.phone,
+          street: `${data.district} Central`,
+          district: data.district,
+          pin_code: pin,
+          is_default: true,
+          type: 'Home',
+        },
+      ],
+    };
+    customers.unshift(newUser);
+    this.saveCustomers(customers);
+    this.saveUser(newUser);
+    return newUser;
+  }
+
+  static loginCustomer(email: string): User | null {
+    const customers = this.getCustomers();
+    const found = customers.find((c) => c.email.toLowerCase() === email.trim().toLowerCase());
+    if (found) {
+      this.saveUser(found);
+      return found;
+    }
+    return null;
+  }
+
+  static toggleBlockCustomer(userId: string): void {
+    const customers = this.getCustomers().map((c) =>
+      c.id === userId ? { ...c, is_blocked: !c.is_blocked } : c
+    );
+    this.saveCustomers(customers);
+  }
+
+  // Seller Profile & Order Status
+  static updateSellerShopProfile(sellerId: string, updates: Partial<Seller>): Seller {
+    const sellers = this.getSellers();
+    const updated = sellers.map((s) => (s.id === sellerId ? { ...s, ...updates } : s));
+    this.saveSellers(updated);
+    return updated.find((s) => s.id === sellerId)!;
+  }
+
+  static setSellerOrderStatus(orderId: string, status: OrderStatus, reason?: string): void {
+    let targetOrder: Order | null = null;
+    const orders = this.getOrders().map((ord) => {
+      if (ord.id === orderId) {
+        const upd: Order = {
+          ...ord,
+          shipping_status: status,
+          rejection_reason: reason,
+          updated_at: new Date().toISOString(),
+          tracking_timeline: [
+            ...ord.tracking_timeline,
+            {
+              title: status,
+              description: reason || `Order status updated to ${status} by merchant.`,
+              location: ord.shipping_address.district,
+              timestamp: 'Just now',
+              completed: true,
+            },
+          ],
+        };
+        targetOrder = upd;
+        return upd;
+      }
+      return ord;
+    });
+    this.saveOrders(orders);
+    if (targetOrder) {
+      saveOrderToFirestore(targetOrder);
+    }
+  }
+
+  // Refunds & Returns
+  static getRefunds(): RefundRequest[] {
+    return getStored<RefundRequest[]>('refunds', INITIAL_REFUNDS);
+  }
+
+  static saveRefunds(refunds: RefundRequest[]): void {
+    setStored('refunds', refunds);
+  }
+
+  static createRefundRequest(params: {
+    order_id: string;
+    order_number: string;
+    customer_id: string;
+    customer_name: string;
+    seller_id: string;
+    amount: number;
+    reason: string;
+  }): RefundRequest {
+    const refunds = this.getRefunds();
+    const newRefund: RefundRequest = {
+      id: `ref_${Date.now()}`,
+      ...params,
+      status: 'Pending',
+      created_at: new Date().toISOString().split('T')[0],
+    };
+    refunds.unshift(newRefund);
+    this.saveRefunds(refunds);
+    return newRefund;
+  }
+
+  static updateRefundStatus(refundId: string, status: 'Approved' | 'Rejected' | 'Refunded', notes?: string): void {
+    const refunds = this.getRefunds().map((r) =>
+      r.id === refundId ? { ...r, status, admin_notes: notes } : r
+    );
+    this.saveRefunds(refunds);
+  }
+
+  // Payouts
+  static getPayouts(): SellerPayout[] {
+    return getStored<SellerPayout[]>('payouts', INITIAL_PAYOUTS);
+  }
+
+  static savePayouts(payouts: SellerPayout[]): void {
+    setStored('payouts', payouts);
+  }
+
+  static requestPayout(sellerId: string, sellerName: string, amount: number, commissionDeducted: number, bankDetails: string): SellerPayout {
+    const payouts = this.getPayouts();
+    const newPayout: SellerPayout = {
+      id: `payout_${Date.now()}`,
+      seller_id: sellerId,
+      seller_name: sellerName,
+      amount,
+      commission_deducted: commissionDeducted,
+      status: 'Pending',
+      bank_details: bankDetails,
+      created_at: new Date().toISOString().split('T')[0],
+    };
+    payouts.unshift(newPayout);
+    this.savePayouts(payouts);
+    return newPayout;
+  }
+
+  static processPayout(payoutId: string, utrNumber: string): void {
+    const payouts = this.getPayouts().map((p) =>
+      p.id === payoutId ? { ...p, status: 'Processed' as const, utr_number: utrNumber } : p
+    );
+    this.savePayouts(payouts);
+  }
+
+  // Product Moderation / Approval
+  static approveProduct(productId: string): void {
+    const products = this.getProducts().map((p) =>
+      p.id === productId ? { ...p, approval_status: 'approved' as const, is_active: true } : p
+    );
+    this.saveProducts(products);
+  }
+
+  static rejectProduct(productId: string, notes?: string): void {
+    const products = this.getProducts().map((p) =>
+      p.id === productId ? { ...p, approval_status: 'rejected' as const, moderation_notes: notes, is_active: false } : p
+    );
+    this.saveProducts(products);
+  }
+
+  // Category Commission settings
+  static updateCategoryCommission(categoryId: string, percent: number): void {
+    const categories = this.getCategories().map((c) =>
+      c.id === categoryId ? { ...c, commission_percent: percent } : c
+    );
+    setStored('categories', categories);
   }
 }

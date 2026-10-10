@@ -13,7 +13,7 @@ export const WhatsAppFloatingButton: React.FC<WhatsAppFloatingButtonProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
 
-  const defaultPhone = '919847012345'; // Configured Kerala support desk number
+  const defaultPhone = '919037538732'; // Official Kerala support desk number (+91 9037538732)
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();

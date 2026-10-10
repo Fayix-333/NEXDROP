@@ -1,0 +1,93 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email == "mohammedfayizofficial@gmail.com" && request.auth.token.email_verified == true) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Users Collection (Profile, PIN Code, Phone, Addresses)
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.id is string && data.id.size() <= 128 &&
+               data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+               data.email is string && data.email.size() <= 150 &&
+               (!('phone' in data) || (data.phone is string && data.phone.size() <= 30)) &&
+               (!('pin_code' in data) || (data.pin_code is string && data.pin_code.size() <= 10)) &&
+               (!('district' in data) || (data.district is string && data.district.size() <= 50)) &&
+               (!('role' in data) || (data.role is string && (data.role == 'customer' || data.role == 'seller' || data.role == 'admin'))) &&
+               (!('wishlist' in data) || (data.wishlist is list && data.wishlist.size() <= 200)) &&
+               (!('addresses' in data) || (data.addresses is list && data.addresses.size() <= 20));
+      }
+
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(userId) && isValidUser(incoming());
+      allow update: if isValidId(userId) && isValidUser(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // Orders Collection
+    match /orders/{orderId} {
+      function isValidOrder(data) {
+        return data.id is string && data.id.size() <= 128 &&
+               data.order_number is string && data.order_number.size() <= 64 &&
+               data.customer_id is string && data.customer_id.size() <= 128 &&
+               data.total_amount is number && data.total_amount >= 0 &&
+               data.shipping_status is string && data.shipping_status.size() <= 50;
+      }
+
+      allow get: if isValidId(orderId);
+      allow list: if true;
+      allow create: if isValidId(orderId) && isValidOrder(incoming());
+      allow update: if isValidId(orderId) && isValidOrder(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // Reviews Collection
+    match /reviews/{reviewId} {
+      function isValidReview(data) {
+        return data.id is string && data.id.size() <= 128 &&
+               data.product_id is string && data.product_id.size() <= 128 &&
+               data.user_id is string && data.user_id.size() <= 128 &&
+               data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+               data.comment is string && data.comment.size() > 0 && data.comment.size() <= 2000;
+      }
+
+      allow get: if isValidId(reviewId);
+      allow list: if true;
+      allow create: if isValidId(reviewId) && isValidReview(incoming());
+      allow update: if isValidId(reviewId) && isValidReview(incoming());
+      allow delete: if isAdmin();
+    }
+  }
+}
