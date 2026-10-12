@@ -116,8 +116,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToStore, l
   const [utrInput, setUtrInput] = useState('');
 
   // Total GMV & Commissions
-  const totalGMV = orders.reduce((sum, o) => sum + o.total_amount, 0) + 489000;
-  const totalCommission = Math.round(totalGMV * 0.091);
+  const totalGMV = orders.reduce((sum, o) => sum + o.total_amount, 0);
+  const totalCommission = Math.round(totalGMV * 0.08);
 
   const handleTogglePinService = (pin: string) => {
     const updated = pinCodes.map((p) =>

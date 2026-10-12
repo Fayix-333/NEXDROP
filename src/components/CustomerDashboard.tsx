@@ -291,7 +291,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({
       order_number: refundModalOrder.order_number,
       customer_id: user.id,
       customer_name: user.name,
-      seller_id: refundModalOrder.items[0]?.product.seller_id || 'seller_cochin_tech',
+      seller_id: refundModalOrder.items[0]?.product?.seller_id || 'merchant_direct',
       amount: refundModalOrder.total_amount,
       reason: refundReason,
     });

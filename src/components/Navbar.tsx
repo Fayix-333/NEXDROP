@@ -347,10 +347,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <span className="font-semibold text-xs">{lang === 'en' ? 'മലയാളം' : 'EN'}</span>
                 </button>
 
-                {/* Wishlist Button */}
+                {/* Wishlist Button (Hidden on small mobile to ensure Login button is never crowded or clipped) */}
                 <button
                   onClick={onOpenWishlist}
-                  className="relative p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white transition-colors shrink-0"
+                  className="hidden sm:flex relative p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white transition-colors shrink-0"
                   title="Wishlist"
                   aria-label="Wishlist"
                 >
@@ -378,31 +378,48 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </span>
                 </button>
 
-                {/* Desktop Account Menu / Login Button */}
+                {/* Account / Login Button (Always prominently visible on all screen sizes) */}
                 {!isLoggedIn ? (
                   <button
                     onClick={onOpenCustomerAuth}
-                    className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-[#00F58A] hover:brightness-110 text-black font-extrabold text-xs shadow-md shadow-[#00F58A]/20 transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0"
+                    className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-[#00F58A] hover:brightness-110 text-black font-extrabold text-xs shadow-md shadow-[#00F58A]/20 transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0"
                     aria-label="Customer Login"
                   >
                     <LogIn className="w-3.5 sm:w-4 h-3.5 sm:h-4 stroke-[2.5]" />
                     <span>Login</span>
                   </button>
                 ) : (
-                  <div className="relative hidden md:block">
+                  <>
+                    {/* Mobile Logged-in Avatar Button */}
                     <button
-                      onClick={() => setShowAccountMenu(!showAccountMenu)}
-                      className="flex items-center gap-1.5 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-colors"
-                      aria-label="Account Menu"
+                      onClick={() => {
+                        onChangeView('customer');
+                        setShowMobileMenu(false);
+                      }}
+                      className="md:hidden flex items-center gap-1 p-1 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white shrink-0"
+                      aria-label="Customer Account"
+                      title="Customer Account"
                     >
                       <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-500 to-[#00F58A] text-black font-extrabold text-[11px] flex items-center justify-center">
                         {user.name ? user.name[0] : 'U'}
                       </div>
-                      <span className="hidden lg:inline text-xs font-medium text-white/90">
-                        {user.name.split(' ')[0]}
-                      </span>
-                      <ChevronDown className="w-3 h-3 text-white/60" />
                     </button>
+
+                    {/* Desktop Account Menu Dropdown */}
+                    <div className="relative hidden md:block">
+                      <button
+                        onClick={() => setShowAccountMenu(!showAccountMenu)}
+                        className="flex items-center gap-1.5 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-colors"
+                        aria-label="Account Menu"
+                      >
+                        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-500 to-[#00F58A] text-black font-extrabold text-[11px] flex items-center justify-center">
+                          {user.name ? user.name[0] : 'U'}
+                        </div>
+                        <span className="hidden lg:inline text-xs font-medium text-white/90">
+                          {user.name.split(' ')[0]}
+                        </span>
+                        <ChevronDown className="w-3 h-3 text-white/60" />
+                      </button>
 
                     {/* Portal Switch Dropdown */}
                     {showAccountMenu && (
@@ -492,7 +509,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </div>
                     )}
                   </div>
-                )}
+                </>
+              )}
               </div>
             </div>
 
@@ -607,9 +625,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Drawer Header */}
             <div className="p-4 border-b border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-[#00F58A]/10 border border-[#00F58A]/40 flex items-center justify-center">
-                  <span className="text-sm font-black text-[#00F58A]">ND</span>
-                </div>
+                <img
+                  src="/logo.jpg"
+                  alt="NEXDROP Logo"
+                  className="w-9 h-9 rounded-xl object-contain bg-black border border-[#00F58A]/40 p-0.5 shadow-[0_0_15px_rgba(0,245,138,0.25)]"
+                />
                 <div>
                   <div className="flex items-center gap-1.5">
                     <span className="font-display font-black text-base text-white tracking-tight">NEXDROP</span>
@@ -702,23 +722,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               {/* Navigation Sections */}
               <div className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 px-2 pb-1">
-                  Marketplace & Customer
+                  Customer & Account
                 </p>
-
-                <button
-                  onClick={() => {
-                    onChangeView('store');
-                    setShowMobileMenu(false);
-                  }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-colors ${
-                    currentView === 'store'
-                      ? 'bg-[#00F58A]/20 text-[#00F58A] font-bold border border-[#00F58A]/30'
-                      : 'text-white/80 hover:bg-white/5'
-                  }`}
-                >
-                  <ShoppingBag className="w-4 h-4 text-[#00F58A]" />
-                  <span>Storefront & Kerala Catalog</span>
-                </button>
 
                 <button
                   onClick={() => {

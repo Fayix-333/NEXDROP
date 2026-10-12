@@ -36,7 +36,23 @@ import {
   updateOrderStatusInFirestore,
 } from './firebase';
 
-const PREFIX = 'nexdrop_v1_';
+const PREFIX = 'nexdrop_v5_fresh_';
+
+// Clean up legacy cached demo data from previous sessions
+try {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    const legacyKeys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('nexdrop_v1_') || k.startsWith('nexdrop_v2_') || k.startsWith('nexdrop_v3_') || k.startsWith('nexdrop_v4_'))) {
+        legacyKeys.push(k);
+      }
+    }
+    legacyKeys.forEach((k) => localStorage.removeItem(k));
+  }
+} catch (e) {
+  // Ignore in SSR
+}
 
 function getStored<T>(key: string, defaultValue: T): T {
   try {
@@ -87,9 +103,14 @@ export class NexdropStore {
     this.saveProducts(products);
   }
 
-  // Categories
+  // Categories with dynamic product count
   static getCategories(): Category[] {
-    return getStored<Category[]>('categories', INITIAL_CATEGORIES);
+    const products = this.getProducts();
+    const stored = getStored<Category[]>('categories', INITIAL_CATEGORIES);
+    return stored.map((cat) => ({
+      ...cat,
+      product_count: products.filter((p) => p.category === cat.id && p.is_active).length,
+    }));
   }
 
   // PIN Codes
@@ -165,7 +186,7 @@ export class NexdropStore {
     const newSeller: Seller = {
       ...seller,
       id: `seller_${Date.now()}`,
-      is_approved: false,
+      is_approved: true,
       total_sales: 0,
       total_orders: 0,
       active_products: 0,
@@ -447,13 +468,7 @@ export class NexdropStore {
 
   // Cart
   static getCart(): CartItem[] {
-    return getStored<CartItem[]>('cart', [
-      {
-        product_id: 'nx_prod_earbuds',
-        quantity: 1,
-        product: INITIAL_PRODUCTS[0],
-      },
-    ]);
+    return getStored<CartItem[]>('cart', []);
   }
 
   static saveCart(cart: CartItem[]): void {

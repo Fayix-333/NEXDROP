@@ -29,15 +29,42 @@ interface SellerDashboardProps {
   onBackToStore: () => void;
   lang: 'en' | 'ml';
   onOpenSellerAuth?: () => void;
+  initialSeller?: Seller | null;
 }
 
 export const SellerDashboard: React.FC<SellerDashboardProps> = ({
   onBackToStore,
   lang,
   onOpenSellerAuth,
+  initialSeller,
 }) => {
   const [sellers] = useState<Seller[]>(() => NexdropStore.getSellers());
-  const [currentSellerId, setCurrentSellerId] = useState<string>('seller_cochin_tech');
+  const fallbackSeller: Seller = {
+    id: 'seller_new',
+    business_name: 'Kerala Merchant Shop',
+    owner_name: 'Merchant Partner',
+    email: 'merchant@nexdropkerala.in',
+    phone: '+91 9037538732',
+    district: 'Ernakulam',
+    gstin: '32AAECP1234F1Z5',
+    pan: 'AAECP1234F',
+    bank_name: 'Federal Bank',
+    account_number: '•••• 1234',
+    ifsc: 'FDRL0001042',
+    is_approved: true,
+    commission_rate: 8,
+    total_sales: 0,
+    total_orders: 0,
+    active_products: 0,
+    created_at: new Date().toISOString().split('T')[0],
+  };
+
+  const [currentSellerId, setCurrentSellerId] = useState<string>(() => {
+    if (initialSeller) return initialSeller.id;
+    const all = NexdropStore.getSellers();
+    return all.length > 0 ? all[0].id : 'seller_new';
+  });
+
   const [products, setProducts] = useState<Product[]>(() => NexdropStore.getProducts());
   const [orders, setOrders] = useState<Order[]>(() => NexdropStore.getOrders());
   const [refunds, setRefunds] = useState<RefundRequest[]>(() => NexdropStore.getRefunds());
@@ -51,7 +78,12 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
-  const activeSeller = sellers.find((s) => s.id === currentSellerId) || sellers[0];
+  const activeSeller =
+    (initialSeller && initialSeller.id === currentSellerId ? initialSeller : null) ||
+    sellers.find((s) => s.id === currentSellerId) ||
+    sellers[0] ||
+    fallbackSeller;
+
   const sellerProducts = products.filter((p) => p.seller_id === activeSeller.id);
   const sellerOrders = orders.filter((o) =>
     o.items.some((it) => it.product.seller_id === activeSeller.id)
@@ -269,18 +301,29 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({
         </div>
 
         <div className="flex items-center gap-2.5">
-          {/* Switch Active Merchant */}
-          <select
-            value={currentSellerId}
-            onChange={(e) => setCurrentSellerId(e.target.value)}
-            className="px-3 py-2 rounded-xl text-xs glass-input bg-[#101411] text-white border border-white/15"
-          >
-            {sellers.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.business_name} ({s.district})
-              </option>
-            ))}
-          </select>
+          {/* Switch Active Merchant or Register */}
+          {sellers.length > 0 ? (
+            <select
+              value={currentSellerId}
+              onChange={(e) => setCurrentSellerId(e.target.value)}
+              className="px-3 py-2 rounded-xl text-xs glass-input bg-[#101411] text-white border border-white/15"
+            >
+              {sellers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.business_name} ({s.district})
+                </option>
+              ))}
+            </select>
+          ) : (
+            onOpenSellerAuth && (
+              <button
+                onClick={onOpenSellerAuth}
+                className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-[#00F58A] text-xs font-bold border border-[#00F58A]/30"
+              >
+                Onboard Shop
+              </button>
+            )
+          )}
 
           {onOpenSellerAuth && (
             <button

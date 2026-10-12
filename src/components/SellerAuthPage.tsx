@@ -52,19 +52,6 @@ export const SellerAuthPage: React.FC<SellerAuthPageProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const handleQuickDemoSeller = () => {
-    const demoSeller = NexdropStore.getSellers()[0];
-    if (demoSeller) {
-      setEmail(demoSeller.email);
-      setPassword('••••••••••••');
-      setError(null);
-      setSuccessMsg('Official Demo Merchant loaded (Malabar Lifestyle). Connecting...');
-      setTimeout(() => {
-        onSellerAuthSuccess(demoSeller);
-      }, 900);
-    }
-  };
-
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -80,12 +67,7 @@ export const SellerAuthPage: React.FC<SellerAuthPageProps> = ({
         onSellerAuthSuccess(found);
       }, 700);
     } else {
-      // Demo fallback: load prime merchant
-      const activeSeller = sellers[0];
-      setSuccessMsg(`Authenticated as ${activeSeller.business_name}. Entering dashboard...`);
-      setTimeout(() => {
-        onSellerAuthSuccess(activeSeller);
-      }, 700);
+      setError('No registered shop found with this email. Please click "Onboard Kerala Business" to register your store.');
     }
   };
 
@@ -202,16 +184,8 @@ export const SellerAuthPage: React.FC<SellerAuthPageProps> = ({
               </div>
             </div>
 
-            {/* Quick Demo Fill */}
-            <div className="pt-6 border-t border-white/10 mt-6">
-              <button
-                type="button"
-                onClick={handleQuickDemoSeller}
-                className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-[#00F58A]/30 text-xs font-bold text-[#00F58A] flex items-center justify-center gap-2 transition-all cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>1-Click Demo Merchant (Malabar Lifestyle)</span>
-              </button>
+            <div className="pt-6 border-t border-white/10 mt-6 text-xs text-slate-400">
+              <p>📍 Dedicated Courier Network covering all 14 Kerala districts from Kasaragod to Trivandrum.</p>
             </div>
           </div>
 

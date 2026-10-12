@@ -82,6 +82,12 @@ export default function App() {
     setCart([]);
   };
 
+  // Seller state
+  const [activeSeller, setActiveSeller] = useState<Seller | null>(() => {
+    const s = NexdropStore.getSellers();
+    return s.length > 0 ? s[0] : null;
+  });
+
   const handleCustomerAuthSuccess = (authenticatedUser: User) => {
     NexdropStore.setCustomerLoggedIn(true);
     setIsLoggedIn(true);
@@ -91,14 +97,14 @@ export default function App() {
   };
 
   const handleSellerAuthSuccess = (seller: Seller) => {
+    setActiveSeller(seller);
     setCurrentView('seller');
   };
 
   const handleCustomerLogout = () => {
     NexdropStore.logoutCustomer();
     setIsLoggedIn(false);
-    const defaultUser = NexdropStore.getCustomers()[0];
-    setUser(defaultUser);
+    setUser(NexdropStore.getUser());
     setCurrentView('store');
   };
 
@@ -311,7 +317,33 @@ export default function App() {
                 </div>
 
                 {/* Product Grid */}
-                {sortedProducts.length === 0 ? (
+                {products.length === 0 ? (
+                  <div className="p-10 sm:p-14 text-center glass-panel rounded-3xl border border-white/10 space-y-4 max-w-2xl mx-auto shadow-2xl">
+                    <div className="w-14 h-14 rounded-2xl bg-[#00F58A]/15 border border-[#00F58A]/40 flex items-center justify-center mx-auto text-[#00F58A]">
+                      <Sparkles className="w-7 h-7" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg sm:text-xl font-bold text-white">NEXDROP Kerala Marketplace is Live & Fresh</h3>
+                      <p className="text-xs sm:text-sm text-[#A6B2AA] mt-1.5 leading-relaxed">
+                        Ready for verified Kerala businesses and regional producers. Register your store to list authentic spices, handlooms, electronics, and goods for fast 24-48h SpeedPost delivery across all 14 districts.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                      <button
+                        onClick={() => setCurrentView('seller-register')}
+                        className="px-5 py-2.5 rounded-xl bg-[#00F58A] hover:bg-[#00C875] text-black font-extrabold text-xs shadow-lg shadow-[#00F58A]/20 transition-all hover:scale-[1.02]"
+                      >
+                        Onboard as Merchant (Sell Here)
+                      </button>
+                      <button
+                        onClick={() => setCurrentView('seller-login')}
+                        className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-semibold transition-colors"
+                      >
+                        Merchant Central Login
+                      </button>
+                    </div>
+                  </div>
+                ) : sortedProducts.length === 0 ? (
                   <div className="p-16 text-center glass-panel rounded-3xl border border-white/10 space-y-3">
                     <p className="text-base font-bold text-white">No products match your criteria</p>
                     <p className="text-xs text-[#A6B2AA]">
@@ -361,6 +393,7 @@ export default function App() {
 
         {currentView === 'seller' && (
           <SellerDashboard
+            initialSeller={activeSeller}
             onBackToStore={() => setCurrentView('store')}
             lang={lang}
             onOpenSellerAuth={() => setCurrentView('seller-login')}
